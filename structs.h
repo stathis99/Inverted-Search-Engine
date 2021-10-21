@@ -1,13 +1,13 @@
 #include <stdio.h>
 
+typedef struct word{
+    char* key_word;
+}word;
+
 typedef struct entry{
-    char* word;
+    word* this_word;
     char** payload;
 }entry;
-
-typedef struct word{
-    char* keyword;
-}word;
 
 enum error_code { SUCCESS = 0, ERROR = 1};
 //Entry* create_entry();

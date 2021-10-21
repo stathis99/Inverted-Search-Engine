@@ -9,16 +9,35 @@ int main() {
    //create word 
    char key_word[] = "str1";
    word* my_word = (word*)malloc(sizeof(word));
-   my_word->keyword = (char*)malloc(strlen(key_word)*sizeof(key_word));
-   strcpy(my_word->keyword,key_word);
+   my_word->key_word = (char*)malloc(strlen(key_word)*sizeof(key_word));
+   strcpy(my_word->key_word,key_word);
 
    //create instance of entry to be initialized
    entry* my_entry = NULL;
+   my_entry = (entry*)malloc(sizeof(entry));
    create_entry(my_word,my_entry);
 
+   //initialize payload
+   my_entry->payload = (char**)malloc(sizeof(char*)*2);
+   char payload1[] = "str2";
+   my_entry->payload[0] = (char*)malloc(strlen(payload1)*sizeof(payload1));
+   strcpy(my_entry->payload[0],payload1);
+   char payload2[] = "str3";
+   my_entry->payload[1] = (char*)malloc(strlen(payload2)*sizeof(payload2));
+   strcpy(my_entry->payload[1],payload2);
+
+   //check what we did
+   //printf("e->this_word->key_word:%s\n",my_entry->this_word->key_word);
+   printf("%s\n",my_entry->payload[1]);
+   printf("%s\n",my_word->key_word);
+   printf("%s\n",my_entry->this_word->key_word);
+
    //free allocated memory
-   free(my_word->keyword);
+   free(my_word->key_word);
    free(my_word);
+   free(my_entry->payload[0]);
+   free(my_entry->payload[1]);
+   free(my_entry->payload);
    free(my_entry);
    /*Entry* my_entry = create_entry();
    if(my_entry == NULL){

@@ -2,9 +2,26 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum error_code create_entry(const word* w, entry* e){
+//can this even work?
+enum error_code create_entry1(const word* w, entry* e){
     printf("gets\n");
-    printf("%s",w->keyword);
+    //printf("%s",w->key_word);
+    e = (entry*)malloc(sizeof(entry)); //this line causes segmentation
+    e->this_word = (word*)malloc(sizeof(word));
+    e->this_word->key_word = (char*)malloc(sizeof(char*)*strlen(w->key_word));
+    strcpy(e->this_word->key_word,w->key_word);
+    //e->this_word = (word*)w;
+    enum error_code my_enum = SUCCESS;
+    return my_enum;
+}
+
+enum error_code create_entry(const word* w, entry* e){
+    //e->this_word = (word*)malloc(sizeof(word));
+    /*e->this_word->key_word = (char*)malloc(sizeof(char*)*strlen(w->key_word));
+    strcpy(e->this_word->key_word,w->key_word);*/
+    
+    e->this_word = (word*)w;
+    //printf("e->this_word->key_word:%s\n",e->this_word->key_word);
     enum error_code my_enum = SUCCESS;
     return my_enum;
 }
