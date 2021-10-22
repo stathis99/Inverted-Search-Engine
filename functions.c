@@ -25,3 +25,45 @@ enum error_code destroy_entry(entry* e){
     free((*e)->this_word);
     free((*e));
 }
+
+enum error_code create_entry_list(entry_list* el){
+    *el = (entry_list)malloc(sizeof(Entry_List));
+    (*el)->next = NULL;
+    (*el)->entry_node = NULL;
+}
+
+enum error_code destroy_entry_list(entry_list* el){
+    entry_list temp ;
+    while(*el != NULL){
+        temp = *el;
+        *el = (*el)->next;
+        free(temp->entry_node);
+        free(temp);
+    }
+}
+
+unsigned int get_number_entries(const entry_list* el){
+    entry_list temp = *el;
+    int number = 0;
+    while(temp != NULL){
+        number++;
+        temp = temp->next;
+    }
+    return number;
+}
+
+enum error_code add_entry(entry_list* el, const entry* e){
+    entry_list temp = *el;
+
+    //create the new node
+    entry_list new_node = (entry_list)malloc(sizeof(Entry_List));
+    new_node->next = NULL;
+    new_node->entry_node = (entry)e;
+
+    while( temp->next != NULL){
+        temp = temp->next;
+    }
+
+    //add new node to the end
+    temp = new_node;
+}
