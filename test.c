@@ -17,13 +17,8 @@ int main() {
    //my_entry = malloc(sizeof(entry));
    //create_entry(my_word,&my_entry);
    entry my_entry = NULL;
-   create_entry(my_word,&my_entry);
+   create_entry(my_word,&my_entry); 
 
-   entry_list my_entry_list = NULL;
-   create_entry_list(&my_entry_list); 
-
-   get_number_entries(&my_entry_list);
-   add_entry(&my_entry_list,&my_entry);
    //initialize payload
   // my_entry->payload = (char**)malloc(2*sizeof(char*));
    /*char payload1[] = "str2";
@@ -56,7 +51,6 @@ int main() {
       free(my_entry);
    }*/
    destroy_entry(&my_entry);
-   destroy_entry_list(&my_entry_list);
 
    return 0;
 }
