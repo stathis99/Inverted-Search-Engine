@@ -27,17 +27,18 @@ enum error_code destroy_entry(entry* e){
 }
 
 enum error_code create_entry_list(entry_list* el){
-    *el = (entry_list)malloc(sizeof(Entry_List));
+    *el = malloc(sizeof(Entry_List));
     (*el)->next = NULL;
     (*el)->entry_node = NULL;
 }
 
 enum error_code destroy_entry_list(entry_list* el){
-    entry_list temp ;
+    entry_list temp;
     while(*el != NULL){
         temp = *el;
         *el = (*el)->next;
-        free(temp->entry_node);
+        //free(temp->entry_node);
+        destroy_entry(&(temp->entry_node));
         free(temp);
     }
 }
@@ -53,17 +54,21 @@ unsigned int get_number_entries(const entry_list* el){
 }
 
 enum error_code add_entry(entry_list* el, const entry* e){
-    entry_list temp = *el;
+    if((*el)->entry_node == NULL){      //first node, initialize it
+        (*el)->entry_node = (entry)(*e);
+        enum error_code my_enum = SUCCESS;
+        return my_enum;
+    }else{
+        printf("isnt\n");
+        entry_list new_node = malloc(sizeof(Entry_List));
+        new_node->next = NULL;
+        new_node->entry_node = (entry)(*e);
 
-    //create the new node
-    entry_list new_node = (entry_list)malloc(sizeof(Entry_List));
-    new_node->next = NULL;
-    new_node->entry_node = (entry)e;
-
-    while( temp->next != NULL){
-        temp = temp->next;
+        entry_list temp = *el;
+        while(temp->next != NULL){
+            temp = temp->next;
+        }
+        temp->next = new_node;
+        return;
     }
-
-    //add new node to the end
-    temp = new_node;
 }

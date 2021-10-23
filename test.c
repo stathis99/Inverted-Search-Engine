@@ -3,9 +3,11 @@
 #include "structs.h"
 #include <string.h>
 
-int main() {
+int main(int argc, char* argv[]){
    printf("Hello, World!\n");
-
+   FILE* fp;
+   //fp = fopen(argv[1],"r");
+   fp = fopen("queries.txt","r");
    //create word 
    char key_word[] = "str1";
    word* my_word = (word*)malloc(sizeof(word));
@@ -24,6 +26,7 @@ int main() {
 
    get_number_entries(&my_entry_list);
    add_entry(&my_entry_list,&my_entry);
+   printf("%s\n",my_entry_list->entry_node->this_word->key_word);
    //initialize payload
   // my_entry->payload = (char**)malloc(2*sizeof(char*));
    /*char payload1[] = "str2";
@@ -55,8 +58,8 @@ int main() {
       free(my_entry->word);
       free(my_entry);
    }*/
-   destroy_entry(&my_entry);
+   //destroy_entry(&my_entry);
    destroy_entry_list(&my_entry_list);
-
+   fclose(fp);
    return 0;
 }
