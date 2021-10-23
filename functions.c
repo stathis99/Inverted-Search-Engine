@@ -24,12 +24,18 @@ enum error_code destroy_entry(entry* e){
     free((*e)->this_word->key_word);
     free((*e)->this_word);
     free((*e));
+    
+    enum error_code my_enum = SUCCESS;
+    return my_enum;
 }
 
 enum error_code create_entry_list(entry_list* el){
     *el = malloc(sizeof(Entry_List));
     (*el)->next = NULL;
     (*el)->entry_node = NULL;
+
+    enum error_code my_enum = SUCCESS;
+    return my_enum;
 }
 
 enum error_code destroy_entry_list(entry_list* el){
@@ -41,6 +47,9 @@ enum error_code destroy_entry_list(entry_list* el){
         destroy_entry(&(temp->entry_node));
         free(temp);
     }
+
+    enum error_code my_enum = SUCCESS;
+    return my_enum;
 }
 
 unsigned int get_number_entries(const entry_list* el){
@@ -59,7 +68,6 @@ enum error_code add_entry(entry_list* el, const entry* e){
         enum error_code my_enum = SUCCESS;
         return my_enum;
     }else{
-        printf("isnt\n");
         entry_list new_node = malloc(sizeof(Entry_List));
         new_node->next = NULL;
         new_node->entry_node = (entry)(*e);
@@ -69,6 +77,29 @@ enum error_code add_entry(entry_list* el, const entry* e){
             temp = temp->next;
         }
         temp->next = new_node;
-        return;
+        enum error_code my_enum = SUCCESS;
+        return my_enum;
     }
+}
+
+
+void print_list(entry_list el){
+    printf("number of entries: %d \n", get_number_entries(&el));
+    while(el != NULL){
+        printf("%s -> ",el->entry_node->this_word->key_word);
+        el = el-> next;
+    }
+}
+
+
+
+
+// entry* get_next(const entry_list* el){
+
+
+// }
+
+entry* get_first(const entry_list* el){ //den leitourgei, exoume thema me to entry*
+    entry* first_node = (*el)->entry_node;
+    return first_node;
 }
