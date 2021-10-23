@@ -58,8 +58,14 @@ int main(int argc, char* argv[]){
 
 
 
-
+   //print entire list
    print_list(my_entry_list);
+
+   //print first entry
+   entry* first_entry = get_first(&my_entry_list);
+   printf("\n first entry:  %s\n ", (*first_entry)->this_word->key_word);
+
+
 
 
 

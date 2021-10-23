@@ -92,14 +92,14 @@ void print_list(entry_list el){
 }
 
 
+entry* get_first(const entry_list* el){ 
+    entry* first_node = malloc(sizeof(Entry));
 
+    *first_node = (*el)->entry_node;
+    return first_node;
+}
 
 // entry* get_next(const entry_list* el){
 
 
 // }
-
-entry* get_first(const entry_list* el){ //den leitourgei, exoume thema me to entry*
-    entry* first_node = (*el)->entry_node;
-    return first_node;
-}
