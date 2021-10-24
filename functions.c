@@ -93,13 +93,14 @@ void print_list(entry_list el){
 
 
 entry* get_first(const entry_list* el){ 
-    entry* first_node = malloc(sizeof(Entry));
+    //entry* first_node = malloc(sizeof(Entry));
 
-    *first_node = (*el)->entry_node;
-    return first_node;
+    //*first_node = (*el)->entry_node;
+    return &((*el)->entry_node);
 }
 
-// entry* get_next(const entry_list* el){
+ entry* get_next(const entry_list* el){
+     entry* next_node = &((*el)->next->entry_node);
 
-
-// }
+     return next_node;
+ }

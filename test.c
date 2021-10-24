@@ -21,7 +21,7 @@ int main(int argc, char* argv[]){
    strcpy(my_word2->key_word,key_word2);
 
    //create word 3
-   char key_word3[] = "str1";
+   char key_word3[] = "str3";
    word* my_word3 = (word*)malloc(sizeof(word));
    my_word3->key_word = (char*)malloc(strlen(key_word3)*sizeof(key_word3));
    strcpy(my_word3->key_word,key_word3);
@@ -55,18 +55,20 @@ int main(int argc, char* argv[]){
    create_entry(my_word4,&my_entry);
    add_entry(&my_entry_list,&my_entry);
 
-
-
-
    //print entire list
    print_list(my_entry_list);
 
    //print first entry
    entry* first_entry = get_first(&my_entry_list);
    printf("\n first entry:  %s\n ", (*first_entry)->this_word->key_word);
+   
+   //print next entry
+   entry* next_entry = get_next(&my_entry_list);
+   printf("%s\n",(*next_entry)->this_word->key_word);
 
-
-
+   //print next next entry
+   entry* next_next_entry = get_next(&my_entry_list->next);
+   printf("%s\n",(*next_next_entry)->this_word->key_word);
 
 
    //create instance of entry to be initialized
@@ -106,7 +108,7 @@ int main(int argc, char* argv[]){
    }*/
    //destroy_entry(&my_entry);
 
-
    destroy_entry_list(&my_entry_list);
+
    return 0;
 }
