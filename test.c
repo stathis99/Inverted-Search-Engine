@@ -27,7 +27,7 @@ int main(int argc, char* argv[]){
    strcpy(my_word3->key_word,key_word3);
 
    //create word 4
-   /*char key_word4[] = "felt";
+   char key_word4[] = "felt";
    word* my_word4 = (word*)malloc(sizeof(word));
    my_word4->key_word = (char*)malloc(strlen(key_word4)*sizeof(key_word4));
    strcpy(my_word4->key_word,key_word4);
@@ -48,7 +48,7 @@ int main(int argc, char* argv[]){
    char key_word7[] = "melt";
    word* my_word7 = (word*)malloc(sizeof(word));
    my_word7->key_word = (char*)malloc(strlen(key_word7)*sizeof(key_word7));
-   strcpy(my_word7->key_word,key_word7);*/
+   strcpy(my_word7->key_word,key_word7);
 
 
 //---------------create a list to store entries------------------------------
@@ -70,7 +70,7 @@ int main(int argc, char* argv[]){
    create_entry(my_word3,&my_entry);
    add_entry(&my_entry_list,&my_entry);
 
-   /*create_entry(my_word4,&my_entry);
+   create_entry(my_word4,&my_entry);
    add_entry(&my_entry_list,&my_entry);
 
    create_entry(my_word5,&my_entry);
@@ -84,7 +84,7 @@ int main(int argc, char* argv[]){
 
 
    //print entire list
-   print_list(my_entry_list);
+   /*print_list(my_entry_list);
 
    //print first entry
    entry* first_entry = get_first(&my_entry_list);
@@ -101,15 +101,18 @@ int main(int argc, char* argv[]){
    printf("\n distance is : %d   ", editDist(my_word1->key_word,my_word6->key_word,strlen(my_word1->key_word),strlen(my_word6->key_word)));
 
 */
-   entry* first = get_first(&my_entry_list);
-   printf("first:%s\n",(*first)->this_word->key_word);
-   entry* next = get_next(&my_entry_list,first);
-   printf("first:%s\n",(*next)->this_word->key_word);
-   print_list(my_entry_list);
+   printf("%d Nodes in List\n",get_number_entries(&my_entry_list));
    destroy_entry_list(&my_entry_list);
-
    /*char* str1 = "melted";
    char* str2 = "hell";
    humming_distance(str1,str2,strlen(str1),strlen(str2));*/
+   int number = 0;
+   char** array = read_document(&number);
+
+   //free array
+   for(int i=0; i < number;i++){
+      free(array[i]);
+   }
+   free(array);
    return 0;
 }

@@ -18,7 +18,6 @@ enum error_code destroy_entry(entry* e){
     free((*e)->payload);
     free((*e)->this_word->key_word);
     free((*e)->this_word);
-    //free((*e));
     
     enum error_code my_enum = SUCCESS;
     return my_enum;
@@ -48,28 +47,20 @@ enum error_code destroy_entry_list(entry_list* el){
         free(temp);
     }
     free(*el);
-    /*entry_list temp;
-    while(*el != NULL){
-        temp = *el;
-        *el = (*el)->next;
-        //free(temp->entry_node);
-        destroy_entry(&(temp->entry_node));
-        free(temp);
-    }*/
     return SUCCESS;
 }
 
-/*unsigned int get_number_entries(const entry_list* el){
-    entry_list temp = *el;
+unsigned int get_number_entries(const entry_list* el){
+    entry temp = (*el)->first_node;
     int number = 0;
     while(temp != NULL){
         number++;
         temp = temp->next;
     }
-    return number;
+    return (*el)->node_count;
 }
 
-*/
+
 enum error_code add_entry(entry_list* el, const entry* e){
     if((*el)->first_node == NULL){
         (*el)->node_count++;
@@ -101,12 +92,10 @@ entry* get_first(const entry_list* el){
 }
 
 entry* get_next(const entry_list* el, entry* e){
-    //entry* next_node = &((*el)->next->entry_node);
-
     return &((*e)->next);
 }
 
-/*
+
 // enum error_code build_entry_index(const entry_list* el, enum match_type type, index* ix){
 
 // }
@@ -160,4 +149,79 @@ int humming_distance(char* str1, char* str2, int m,int n){
     }
     printf("distance=%d\n",distance);
     return distance;
-}*/
+}
+
+char** read_document(int* number){
+    char** document_words = NULL;
+    int number_of_words = 0;
+    FILE* fp = fopen("doc1.txt","r");
+    if(fp == NULL){
+        return NULL;
+    }
+
+    char c;
+    char* word = NULL;
+    int word_length = 0;
+    while((c = fgetc (fp)) != EOF){
+
+        if((c == ' ' || c == '\n') && (word_length > 0)){     //full word has been read. add letters to form the word
+            //store word
+            //move to next
+            word[word_length] = '\0';
+            if(document_words == NULL){         //first word, initialize array
+                document_words = malloc(sizeof(char*));
+                document_words[0] = malloc(sizeof(char)*(word_length+1));
+                strcpy(document_words[0],word);
+                free(word);
+                number_of_words++;
+            }else{
+                int exists = 0;
+                printf("\nSearching for word: %s\n",word);
+                //check that this word doesnt already exist in the array; deduplicate here
+                for(int i=0; i < number_of_words;i++){
+                    if(word != NULL && document_words[i] != NULL){
+                       printf("Comparing: %s = %s\n",document_words[i],word);
+                       if(strcmp(document_words[i],word)==0){
+                           printf("\nmatch found for word: %s\n",word);
+                           free(word);
+                           exists = 1;
+                           break;
+                       }
+                    }
+                }
+                if(exists == 0){
+                    //if it doesnt, append the array
+                    number_of_words++;
+                    char** temp_document = realloc(document_words,(number_of_words)*sizeof(char*));
+                    document_words = temp_document;
+                    document_words[number_of_words-1] = malloc(sizeof(char)*(word_length+1));
+                    strcpy(document_words[number_of_words-1],word);
+                    free(word);
+                }
+            }
+            word_length = 0;
+            word = NULL;
+        }else{
+            word_length++;
+            char* temp_word;
+            if(word != NULL){
+                temp_word = (char*)realloc(word,(word_length+1)*sizeof(char));
+                if(temp_word == NULL){
+                    free(word);
+                    return NULL;
+                }
+                word = temp_word;
+            }else{
+                word = (char*)realloc(word,(word_length+1)*sizeof(char));
+            }
+            word[word_length-1] = c;
+        }
+    }
+    fclose(fp);
+    printf("Read %d words\n",number_of_words);
+    for(int i=0; i < number_of_words; i++){
+        printf("Index[%d]: %s\n",i,document_words[i]);
+    }
+    *number = number_of_words;
+    return document_words;
+}

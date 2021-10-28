@@ -40,3 +40,4 @@ entry* get_next(const entry_list* el, entry* e);
 int min3(int x, int y, int z);
 int edit_distance(char* str1, char* str2, int m, int n);
 int humming_distance(char* str1, char* str2, int m,int n);*/
+char** read_document(int* number);
