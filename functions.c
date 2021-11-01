@@ -61,6 +61,17 @@ unsigned int get_number_entries(const entry_list* el){
 }
 
 
+// unsigned int get_number_entries(const entry_list* el){
+//     entry_list temp = *el;
+//     int number = 0;
+//     while(temp != NULL){
+//         number++;
+//         temp = temp->next;
+//     }
+//     return number;
+// }
+
+
 enum error_code add_entry(entry_list* el, const entry* e){
     if((*el)->first_node == NULL){
         (*el)->node_count++;
@@ -81,7 +92,7 @@ enum error_code add_entry(entry_list* el, const entry* e){
 void print_list(const entry_list el){
     entry head = el->first_node;
     while(head != NULL){
-        printf("%s -> ",head->this_word->key_word);
+        printf("%s - ",head->this_word->key_word);
         head = head-> next;
     }
 }
@@ -98,7 +109,7 @@ entry* get_next(const entry_list* el, entry* e){
 
 // enum error_code build_entry_index(const entry_list* el, enum match_type type, index* ix){
 
-// }
+
 int min2(int x, int y){ return x > y ? y:x;}
 
 int min3(int x, int y, int z) { return min2(min2(x, y),z); }
@@ -224,4 +235,94 @@ char** read_document(int* number){
     }
     *number = number_of_words;
     return document_words;
+}
+
+
+ void print_bk_tree(bk_index ix, int pos){   
+    struct children_list*  temp = ix->children_list;
+    printf("\n\n   %s:%d  %d \n\n",ix->this_word->key_word,ix->weight,pos);
+
+    while(temp != NULL){
+        print_bk_tree(temp->child,pos-1);
+        temp = temp->next;   
+    }
+    return;
+ }
+
+int distExists_ChildrenList(struct children_list* cl, int dist){
+
+    while(cl !=  NULL){
+        if(cl->weight == dist){
+            return 1;
+        }
+        cl = cl->next;
+    }
+    return 0;
+}
+
+void bk_create_node(bk_index* ix,word* entry_word,int weight){
+
+        (*ix) = malloc(sizeof(Index));
+        (*ix)->weight = weight;
+        (*ix)->this_word = (word*)malloc(sizeof(word));
+        (*ix)->this_word = entry_word;
+        (*ix)-> children_list = NULL;
+
+}
+
+void cl_create_node(struct children_list** nodes_children, word* entry_word,int dist){
+
+    *nodes_children = malloc(sizeof(struct children_list));
+    (*nodes_children)->weight = dist;
+    (*nodes_children)->next = NULL;
+
+    bk_create_node(&((*nodes_children)->child ),entry_word, dist);
+
+}
+
+
+int bk_add_node(bk_index* ix,word* entry_word){
+
+    struct children_list* nodes_children = (*ix)->children_list;
+    int dist = editDist(entry_word->key_word,(*ix)->this_word->key_word,strlen(entry_word->key_word),strlen((*ix)->this_word->key_word));
+
+    //if node doesnt have children
+    if(nodes_children == NULL){
+        cl_create_node(&((*ix)->children_list),entry_word,dist);
+        return 1; 
+    }
+    else{
+        if(distExists_ChildrenList((*ix)-> children_list, dist) == 1){
+            while(nodes_children->child->weight != dist){
+                nodes_children = nodes_children->next;
+            }
+            bk_add_node(&(nodes_children->child),entry_word);
+        }else{
+            while(nodes_children->next != NULL){
+            nodes_children = nodes_children -> next;
+        }
+        cl_create_node(&(nodes_children->next),entry_word,dist);
+        return 1;
+        }
+    }
+}
+
+
+
+enum error_code build_entry_index(const entry_list* el, enum match_type type, bk_index* ix){
+    entry temp_entry = (*el)->first_node;
+
+    //create the root of the tree
+    if((*ix) == NULL){
+        bk_create_node(ix,temp_entry->this_word,0);
+    }
+    //for every word in the list add it to the tree
+    temp_entry = temp_entry->next;
+    while(temp_entry != NULL){
+        bk_add_node(ix,temp_entry->this_word);
+        temp_entry = temp_entry->next;
+    }
+
+    enum error_code my_enum = SUCCESS;
+    return my_enum;
 }

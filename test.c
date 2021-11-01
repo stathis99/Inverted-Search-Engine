@@ -50,6 +50,12 @@ int main(int argc, char* argv[]){
    my_word7->key_word = (char*)malloc(strlen(key_word7)*sizeof(key_word7));
    strcpy(my_word7->key_word,key_word7);
 
+   //create word 8
+   char key_word8[] = "hellk";
+   word* my_word8 = (word*)malloc(sizeof(word));
+   my_word8->key_word = (char*)malloc(strlen(key_word8)*sizeof(key_word8));
+   strcpy(my_word8->key_word,key_word8);
+
 
 //---------------create a list to store entries------------------------------
 
@@ -82,23 +88,17 @@ int main(int argc, char* argv[]){
    create_entry(my_word7,&my_entry);
    add_entry(&my_entry_list,&my_entry);
 
+   create_entry(my_word8,&my_entry);
+   add_entry(&my_entry_list,&my_entry);
 
    //print entire list
    /*print_list(my_entry_list);
 
-   //print first entry
-   entry* first_entry = get_first(&my_entry_list);
-   printf("\n first entry:  %s\n ", (*first_entry)->this_word->key_word);
-   
-   //print next entry
-   entry* next_entry = get_next(&my_entry_list);
-   printf("%s\n",(*next_entry)->this_word->key_word);
 
-   //print next next entry
-   entry* next_next_entry = get_next(&my_entry_list->next);
-   printf("%s\n",(*next_next_entry)->this_word->key_word);
+   bk_index ix = NULL;
+   build_entry_index(&my_entry_list,EDIT_DIST,&ix);
 
-   printf("\n distance is : %d   ", editDist(my_word1->key_word,my_word6->key_word,strlen(my_word1->key_word),strlen(my_word6->key_word)));
+   print_bk_tree(ix,0);
 
 */
    printf("%d Nodes in List\n",get_number_entries(&my_entry_list));
@@ -114,5 +114,9 @@ int main(int argc, char* argv[]){
       free(array[i]);
    }
    free(array);
+
+
+   destroy_entry_list(&my_entry_list);
+   printf("\n\n");
    return 0;
 }

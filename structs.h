@@ -19,6 +19,23 @@ typedef struct Entry_List{
 typedef Entry_List *entry_list;
 
 
+//struct for list that stores the children of a parent node in a bk tree
+typedef struct children_list{
+    int weight;
+    struct Index* child;
+    struct children_list* next;
+}childrent_list;
+
+
+//struct for bk tree
+typedef struct Index{
+    word* this_word;
+    int weight;
+    struct children_list* children_list;
+}Index;
+typedef Index *bk_index;
+
+
 enum error_code { SUCCESS = 0, ERROR = 1};
 enum match_type { EDIT_DIST = 0};
 
@@ -35,9 +52,18 @@ unsigned int get_number_entries(const entry_list* el);
 void print_list(entry_list el);
 entry* get_first(const entry_list* el);
 entry* get_next(const entry_list* el, entry* e);
-//enum error_code build_entry_index(const entry_list* el, enum match_type type, index* ix);
-/*int min2(int x, int y);
+
+//distance functions
+int min2(int x, int y);
 int min3(int x, int y, int z);
 int edit_distance(char* str1, char* str2, int m, int n);
-int humming_distance(char* str1, char* str2, int m,int n);*/
+int humming_distance(char* str1, char* str2, int m,int n);
 char** read_document(int* number);
+int editDist(char* str1, char* str2, int m, int n);
+int humming_distance(char* str1, char* str2, int m,int n);
+
+
+enum error_code build_entry_index(const entry_list* el, enum match_type type, bk_index* ix);
+enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result);
+void print_bk_tree(bk_index ix,int pos);
+
