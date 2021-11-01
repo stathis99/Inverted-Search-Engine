@@ -5,6 +5,8 @@ OUT		= output
 
 all: $(OBJECTS)
 	gcc -g $(OBJECTS) -o $(OUT)
+	make clean
+	./output
 
 output: test.o
 	gcc test.o -o $(OUT)
@@ -16,4 +18,4 @@ functions.o:
 	gcc -c functions.c
 
 clean: 
-	rm *.o output
+	rm functions.o test.o
