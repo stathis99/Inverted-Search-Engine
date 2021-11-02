@@ -19,19 +19,12 @@ typedef struct Entry_List{
 typedef Entry_List *entry_list;
 
 
-//struct for list that stores the children of a parent node in a bk tree
-typedef struct children_list{
-    int weight;
-    struct Index* child;
-    struct children_list* next;
-}childrent_list;
-
-
 //struct for bk tree
 typedef struct Index{
     word* this_word;
     int weight;
-    struct children_list* children_list;
+    struct Index* next;
+    struct Index* child;
 }Index;
 typedef Index *bk_index;
 

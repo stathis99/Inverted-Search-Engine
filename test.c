@@ -92,28 +92,28 @@ int main(int argc, char* argv[]){
    add_entry(&my_entry_list,&my_entry);
 
    //print entire list
-   /*print_list(my_entry_list);
+   print_list(my_entry_list);
 
 
    bk_index ix = NULL;
    build_entry_index(&my_entry_list,EDIT_DIST,&ix);
-
    print_bk_tree(ix,0);
+   //print_bk_tree(ix,0);
 
-*/
-   printf("%d Nodes in List\n",get_number_entries(&my_entry_list));
-   destroy_entry_list(&my_entry_list);
+
+   ///printf("%d Nodes in List\n",get_number_entries(&my_entry_list));
+   //destroy_entry_list(&my_entry_list);
    /*char* str1 = "melted";
    char* str2 = "hell";
    humming_distance(str1,str2,strlen(str1),strlen(str2));*/
    int number = 0;
-   char** array = read_document(&number);
+   //char** array = read_document(&number);
 
    //free array
-   for(int i=0; i < number;i++){
-      free(array[i]);
-   }
-   free(array);
+   // for(int i=0; i < number;i++){
+   //    free(array[i]);
+   // }
+   // free(array);
 
 
    destroy_entry_list(&my_entry_list);
