@@ -31,6 +31,7 @@ enum error_code create_entry_list(entry_list* el){
     (*el)->first_node = NULL;
     (*el)->last_node = NULL;
     (*el)->node_count = 0;
+
     enum error_code my_enum = SUCCESS;
     return my_enum;
 }
@@ -304,6 +305,33 @@ enum error_code build_entry_index(const entry_list* el, enum match_type type, bk
         temp_entry = temp_entry->next;
     }
 
+    enum error_code my_enum = SUCCESS;
+    return my_enum;
+}
+
+
+enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result){
+    bk_index temp_child  = (*ix)->child;
+    int dist = editDist(w->key_word,(*ix)->this_word->key_word,strlen(w->key_word),strlen((*ix)->this_word->key_word));
+    int min_dist = dist - threshold;
+    int max_dist = dist + threshold;
+
+    //if ix keyword is close to w then create an entry and add it to the results
+    if( dist <= threshold ){
+        entry my_entry = NULL;
+        create_entry((*ix)->this_word,&my_entry);
+        add_entry(result,&my_entry);
+    }
+
+    //traverse the tree retrospectively 
+    while(temp_child != NULL){
+        //if distance child from the parent is  [𝑑 − 𝑛, 𝑑 + 𝑛] than call retrospectively 
+        if(temp_child->weight >= min_dist && temp_child->weight <= max_dist ){
+            lookup_entry_index(w,&temp_child,threshold,result);
+        }
+        temp_child = temp_child->next;   
+    }
+    
     enum error_code my_enum = SUCCESS;
     return my_enum;
 }

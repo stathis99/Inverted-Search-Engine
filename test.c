@@ -62,7 +62,6 @@ int main(int argc, char* argv[]){
    entry_list my_entry_list = NULL;
    create_entry_list(&my_entry_list); 
 
-
 //---------------create and add entries to to the list-------------------------
 
    entry my_entry = NULL;
@@ -98,15 +97,29 @@ int main(int argc, char* argv[]){
    bk_index ix = NULL;
    build_entry_index(&my_entry_list,EDIT_DIST,&ix);
    print_bk_tree(ix,0);
+
+   //create a word to search in tree
+   char key_word9[] = "henn";
+   word* my_word9 = (word*)malloc(sizeof(word));
+   my_word9->key_word = (char*)malloc(strlen(key_word9)*sizeof(key_word9));
+   strcpy(my_word9->key_word,key_word9);
+   //create list for results
+   entry_list results = NULL;
+   create_entry_list(&results); 
+
+   lookup_entry_index(my_word9, &ix, 1, &results);
+
+   print_list(results);
+
+
+
    //print_bk_tree(ix,0);
-
-
    ///printf("%d Nodes in List\n",get_number_entries(&my_entry_list));
    //destroy_entry_list(&my_entry_list);
    /*char* str1 = "melted";
    char* str2 = "hell";
    humming_distance(str1,str2,strlen(str1),strlen(str2));*/
-   int number = 0;
+   //int number = 0;
    //char** array = read_document(&number);
 
    //free array
