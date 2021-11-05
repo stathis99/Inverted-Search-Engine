@@ -16,6 +16,9 @@ enum error_code create_entry(const word* w, entry* e){
 }
 
 enum error_code destroy_entry(entry* e){
+    if(*e == NULL){
+        return NULL_POINTER;
+    }
     free((*e)->payload[0]);
     free((*e)->payload);
     free((*e)->this_word->key_word);
@@ -29,7 +32,7 @@ enum error_code destroy_entry(entry* e){
 enum error_code create_entry_list(entry_list* el){
     *el = malloc(sizeof(Entry_List));
     if(el == NULL){
-        return ERROR;
+        return NULL_POINTER;
     }
     (*el)->first_node = NULL;
     (*el)->last_node = NULL;
@@ -40,7 +43,7 @@ enum error_code create_entry_list(entry_list* el){
 
 enum error_code destroy_entry_list(entry_list* el){
     if(*el == NULL){        //it is empty
-        return SUCCESS;
+        return NULL_POINTER;
     }
     entry temp;
     while((*el)->first_node != NULL){
@@ -54,6 +57,9 @@ enum error_code destroy_entry_list(entry_list* el){
 }
 
 unsigned int get_number_entries(const entry_list* el){
+    if(*el == NULL){
+        return NULL_POINTER;
+    }
     entry temp = (*el)->first_node;
     int number = 0;
     while(temp != NULL){
@@ -65,6 +71,9 @@ unsigned int get_number_entries(const entry_list* el){
 
 
 enum error_code add_entry(entry_list* el, const entry* e){
+    if(*e == NULL){
+        return NULL_POINTER;
+    }
     if((*el)->first_node == NULL){
         (*el)->node_count++;
         (*el)->first_node = (entry)(*e);
@@ -81,6 +90,9 @@ enum error_code add_entry(entry_list* el, const entry* e){
 }
 
 void print_list(const entry_list el){
+    if(el == NULL){
+        return NULL_POINTER
+    }
     entry head = el->first_node;
     while(head != NULL){
         printf("%s - ",head->this_word->key_word);
@@ -109,32 +121,39 @@ int min3(int x, int y, int z) {
 
 //distance functions
 int editDist(char* str1, char* str2, int m, int n){
-    // If first string is empty, the only option is to
-    // insert all characters of second string into first
-    if (m == 0)
-        return n;
+    // Create a table to store results of subproblems
+    int dp[m + 1][n + 1];
   
-    // If second string is empty, the only option is to
-    // remove all characters of first string
-    if (n == 0)
-        return m;
+    // Fill d[][] in bottom up manner
+    for (int i = 0; i <= m; i++) {
+        for (int j = 0; j <= n; j++) {
+            // If first string is empty, only option is to
+            // insert all characters of second string
+            if (i == 0)
+                dp[i][j] = j; // Min. operations = j
   
-    // If last characters of two strings are same, nothing
-    // much to do. Ignore last characters and get count for
-    // remaining strings.
-    if (str1[m - 1] == str2[n - 1])
-        return editDist(str1, str2, m - 1, n - 1);
+            // If second string is empty, only option is to
+            // remove all characters of second string
+            else if (j == 0)
+                dp[i][j] = i; // Min. operations = i
   
-    // If last characters are not same, consider all three
-    // operations on last character of first string,
-    // recursively compute minimum cost for all three
-    // operations and take minimum of three values.
-    return 1
-           + min3(editDist(str1, str2, m, n - 1), // Insert
-                 editDist(str1, str2, m - 1, n), // Remove
-                 editDist(str1, str2, m - 1,
-                          n - 1) // Replace
-             );
+            // If last characters are same, ignore last char
+            // and recur for remaining string
+            else if (str1[i - 1] == str2[j - 1])
+                dp[i][j] = dp[i - 1][j - 1];
+  
+            // If the last character is different, consider
+            // all possibilities and find the minimum
+            else
+                dp[i][j]
+                    = 1
+                      + min3(dp[i][j - 1], // Insert
+                            dp[i - 1][j], // Remove
+                            dp[i - 1][j - 1]); // Replace
+        }
+    }
+  
+    return dp[m][n];
 }
 
 int humming_distance(char* str1, char* str2, int m,int n){
@@ -146,12 +165,10 @@ int humming_distance(char* str1, char* str2, int m,int n){
     int last_character = m > n ? (m-distance) : (n-distance);
     
     for(int i=0; i < last_character; i++){
-        printf("%c == %c\n",str1[i],str2[i]);
         if(str1[i] != str2[i]){
             distance++;
         }
     }
-    printf("distance=%d\n",distance);
     return distance;
 }
 
@@ -257,11 +274,15 @@ void bk_create_node(bk_index* ix,word* entry_word,int weight){
 
 }
 
-int bk_add_node(bk_index* ix,word* entry_word){
+int bk_add_node(bk_index* ix,word* entry_word,enum match_type type){
 
     bk_index temp_child  = (*ix)->child;
-    int dist = editDist(entry_word->key_word,(*ix)->this_word->key_word,strlen(entry_word->key_word),strlen((*ix)->this_word->key_word));
-
+    int dist;
+    if(type == EDIT_DIST){
+        dist = editDist(entry_word->key_word,(*ix)->this_word->key_word,strlen(entry_word->key_word),strlen((*ix)->this_word->key_word));
+    }else{
+        dist = humming_distance(entry_word->key_word,(*ix)->this_word->key_word,strlen(entry_word->key_word),strlen((*ix)->this_word->key_word));
+    }
     //if ix doesnt have children create a node and set it as his  child
     if(temp_child == NULL){
 
@@ -276,20 +297,22 @@ int bk_add_node(bk_index* ix,word* entry_word){
 
             //if exists child with same dist go to this child , child
             if(temp_child->weight == dist){
-                bk_add_node(&temp_child ,entry_word);
+                bk_add_node(&temp_child, entry_word, type);
                 return 1;
             }
-            child_distance = temp_child->weight;
+            if(dist < temp_child->weight){
+                printf("\nWord %s has distance of %d from %s and previous word %s has %d.Swapping them\n",entry_word->key_word,dist,(*ix)->this_word->key_word,temp_child->this_word->key_word,temp_child->weight);
+                bk_index new_index = NULL;
+                bk_create_node(&new_index,entry_word,dist);
+                (*ix)->child = new_index;
+                new_index->next = temp_child;
+                return 1;
+            }
             //if we wave seen all ix children and there is no child with same distance
             if(temp_child->next == NULL){
                 //add new node at the end of children
 
                 //modify here to add with increasing distance
-                if(child_distance > dist){      //we shall swap positions to keep tree sorted.
-
-                }else{                          //we do not need to do anything differently. add it to the end 
-
-                }
                 bk_create_node(&(temp_child->next),entry_word,dist);
                 return 1;
             }
@@ -310,7 +333,7 @@ enum error_code build_entry_index(const entry_list* el, enum match_type type, bk
     //for every word in the list add it to the tree
     temp_entry = temp_entry->next;
     while(temp_entry != NULL){
-        bk_add_node(ix,temp_entry->this_word);
+        bk_add_node(ix,temp_entry->this_word,type);
         temp_entry = temp_entry->next;
     }
 

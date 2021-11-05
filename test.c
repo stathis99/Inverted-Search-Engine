@@ -15,13 +15,13 @@ int main(int argc, char* argv[]){
    strcpy(my_word1->key_word,key_word1);
 
    //create word 2
-   char key_word2[] = "help";
+   char key_word2[] = "fall";
    word* my_word2 = (word*)malloc(sizeof(word));
    my_word2->key_word = (char*)malloc(strlen(key_word2)*sizeof(key_word2));
    strcpy(my_word2->key_word,key_word2);
 
    //create word 3
-   char key_word3[] = "fall";
+   char key_word3[] = "help";
    word* my_word3 = (word*)malloc(sizeof(word));
    my_word3->key_word = (char*)malloc(strlen(key_word3)*sizeof(key_word3));
    strcpy(my_word3->key_word,key_word3);
@@ -56,6 +56,11 @@ int main(int argc, char* argv[]){
    my_word8->key_word = (char*)malloc(strlen(key_word8)*sizeof(key_word8));
    strcpy(my_word8->key_word,key_word8);
 
+   //create word 10
+   char key_word10[] = "call";
+   word* my_word10 = (word*)malloc(sizeof(word));
+   my_word10->key_word = (char*)malloc(strlen(key_word10)*sizeof(key_word10));
+   strcpy(my_word10->key_word,key_word10);
 
 //---------------create a list to store entries------------------------------
 
@@ -90,6 +95,8 @@ int main(int argc, char* argv[]){
    create_entry(my_word8,&my_entry);
    add_entry(&my_entry_list,&my_entry);
 
+   create_entry(my_word10,&my_entry);
+   add_entry(&my_entry_list,&my_entry);
    //print entire list
    print_list(my_entry_list);
 
@@ -129,7 +136,13 @@ int main(int argc, char* argv[]){
    // free(array);
 
    destroy_entry_index(&ix);
+
+   ix = NULL;
+   build_entry_index(&my_entry_list,HUMMING_DIST,&ix);
+   print_bk_tree(ix,0);
+
    destroy_entry_list(&my_entry_list);
+   destroy_entry_index(&ix);
    free(my_word9->key_word);
    free(my_word9);
    printf("\n\n");
