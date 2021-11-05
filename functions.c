@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+//entry functions
 enum error_code create_entry(const word* w, entry* e){
     *e = malloc(sizeof(Entry));
     (*e)->this_word = (word*)w;
@@ -19,10 +21,11 @@ enum error_code destroy_entry(entry* e){
     free((*e)->this_word->key_word);
     free((*e)->this_word);
     
-    enum error_code my_enum = SUCCESS;
-    return my_enum;
+    return SUCCESS;
 }
 
+
+//entry list functions
 enum error_code create_entry_list(entry_list* el){
     *el = malloc(sizeof(Entry_List));
     if(el == NULL){
@@ -32,8 +35,7 @@ enum error_code create_entry_list(entry_list* el){
     (*el)->last_node = NULL;
     (*el)->node_count = 0;
 
-    enum error_code my_enum = SUCCESS;
-    return my_enum;
+    return SUCCESS;
 }
 
 enum error_code destroy_entry_list(entry_list* el){
@@ -78,7 +80,6 @@ enum error_code add_entry(entry_list* el, const entry* e){
     return SUCCESS;
 }
 
-
 void print_list(const entry_list el){
     entry head = el->first_node;
     while(head != NULL){
@@ -86,7 +87,6 @@ void print_list(const entry_list el){
         head = head-> next;
     }
 }
-
 
 entry* get_first(const entry_list* el){ 
     return &((*el)->first_node);
@@ -97,15 +97,18 @@ entry* get_next(const entry_list* el, entry* e){
 }
 
 
-// enum error_code build_entry_index(const entry_list* el, enum match_type type, index* ix){
+//min functions
+int min2(int x, int y){ 
+    return x > y ? y:x;
+}
+
+int min3(int x, int y, int z) { 
+    return min2( min2(x,y), z); 
+}
 
 
-int min2(int x, int y){ return x > y ? y:x;}
-
-int min3(int x, int y, int z) { return min2(min2(x, y),z); }
-
-int editDist(char* str1, char* str2, int m, int n) //dynamikos programmatismos
-{
+//distance functions
+int editDist(char* str1, char* str2, int m, int n){
     // If first string is empty, the only option is to
     // insert all characters of second string into first
     if (m == 0)
@@ -152,6 +155,8 @@ int humming_distance(char* str1, char* str2, int m,int n){
     return distance;
 }
 
+
+//read from txt + deduplicate
 char** read_document(int* number){
     char** document_words = NULL;
     int number_of_words = 0;
@@ -228,6 +233,7 @@ char** read_document(int* number){
 }
 
 
+//bk functions
  void print_bk_tree(bk_index ix, int pos){   
     bk_index temp_child  = ix->child;
 
@@ -240,20 +246,16 @@ char** read_document(int* number){
     return;
  }
 
-
-
 //creates a bk tree node
 void bk_create_node(bk_index* ix,word* entry_word,int weight){
 
         (*ix) = malloc(sizeof(Index));
         (*ix)->weight = weight;
-        (*ix)->this_word = (word*)malloc(sizeof(word));
         (*ix)->this_word = entry_word;
         (*ix)->next = NULL;
         (*ix)-> child = NULL;
 
 }
-
 
 int bk_add_node(bk_index* ix,word* entry_word){
 
@@ -269,6 +271,7 @@ int bk_add_node(bk_index* ix,word* entry_word){
     }else{
 
         //for every child of ix 
+        int child_distance = -1; 
         while(temp_child != NULL){
 
             //if exists child with same dist go to this child , child
@@ -276,9 +279,17 @@ int bk_add_node(bk_index* ix,word* entry_word){
                 bk_add_node(&temp_child ,entry_word);
                 return 1;
             }
+            child_distance = temp_child->weight;
             //if we wave seen all ix children and there is no child with same distance
             if(temp_child->next == NULL){
                 //add new node at the end of children
+
+                //modify here to add with increasing distance
+                if(child_distance > dist){      //we shall swap positions to keep tree sorted.
+
+                }else{                          //we do not need to do anything differently. add it to the end 
+
+                }
                 bk_create_node(&(temp_child->next),entry_word,dist);
                 return 1;
             }
@@ -287,8 +298,6 @@ int bk_add_node(bk_index* ix,word* entry_word){
     }
     return 1;
 }
-
-
 
 enum error_code build_entry_index(const entry_list* el, enum match_type type, bk_index* ix){
     entry temp_entry = (*el)->first_node;
@@ -305,10 +314,8 @@ enum error_code build_entry_index(const entry_list* el, enum match_type type, bk
         temp_entry = temp_entry->next;
     }
 
-    enum error_code my_enum = SUCCESS;
-    return my_enum;
+    return SUCCESS;
 }
-
 
 enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result){
     bk_index temp_child  = (*ix)->child;
@@ -332,6 +339,23 @@ enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, e
         temp_child = temp_child->next;   
     }
     
-    enum error_code my_enum = SUCCESS;
-    return my_enum;
+    return SUCCESS;
+}
+
+enum error_code destroy_entry_index(bk_index* ix){
+    if(*ix == NULL){
+        return NULL_POINTER;
+    }
+
+    bk_index temp_child  = (*ix)->child;
+    free(*ix);
+    bk_index temp_child_next;
+    while(temp_child != NULL){
+        temp_child_next = temp_child->next;
+        destroy_entry_index(&temp_child);
+        temp_child = temp_child_next;   
+    }
+
+    return SUCCESS;
+
 }

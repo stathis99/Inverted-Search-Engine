@@ -104,12 +104,12 @@ int main(int argc, char* argv[]){
    my_word9->key_word = (char*)malloc(strlen(key_word9)*sizeof(key_word9));
    strcpy(my_word9->key_word,key_word9);
    //create list for results
-   entry_list results = NULL;
-   create_entry_list(&results); 
+   //entry_list results = NULL;
+   //create_entry_list(&results); 
 
-   lookup_entry_index(my_word9, &ix, 1, &results);
+   //lookup_entry_index(my_word9, &ix, 1, &results);
 
-   print_list(results);
+   //print_list(results);
 
 
 
@@ -128,8 +128,10 @@ int main(int argc, char* argv[]){
    // }
    // free(array);
 
-
+   destroy_entry_index(&ix);
    destroy_entry_list(&my_entry_list);
+   free(my_word9->key_word);
+   free(my_word9);
    printf("\n\n");
    return 0;
 }
