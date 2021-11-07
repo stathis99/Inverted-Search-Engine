@@ -5,11 +5,14 @@
 
 int main(int argc, char* argv[]){
 
-
-//<---------create 3 words for testing----------------------------------------
+   //read query words 
+   int number = 0;
+   //char** query_words = read_document(&number);
+  // word** query_words = read_document2(&number);
+   //entry* query_entries = read_document3(&number);
 
    //create word 1
-   char key_word1[] = "hell";
+/*  char key_word1[] = "hell";
    word* my_word1 = (word*)malloc(sizeof(word));
    my_word1->key_word = (char*)malloc(strlen(key_word1)*sizeof(key_word1));
    strcpy(my_word1->key_word,key_word1);
@@ -68,7 +71,7 @@ int main(int argc, char* argv[]){
    create_entry_list(&my_entry_list); 
 
 //---------------create and add entries to to the list-------------------------
-
+/*
    entry my_entry = NULL;
 
    create_entry(my_word1,&my_entry);
@@ -100,8 +103,8 @@ int main(int argc, char* argv[]){
    //print entire list
    print_list(my_entry_list);
 
-
-   bk_index ix = NULL;
+*/
+ /*  bk_index ix = NULL;
    build_entry_index(&my_entry_list,EDIT_DIST,&ix);
    print_bk_tree(ix,0);
 
@@ -122,10 +125,10 @@ int main(int argc, char* argv[]){
 
    //print_bk_tree(ix,0);
    ///printf("%d Nodes in List\n",get_number_entries(&my_entry_list));
-   //destroy_entry_list(&my_entry_list);
+   destroy_entry_list(&my_entry_list);
    /*char* str1 = "melted";
    char* str2 = "hell";
-   humming_distance(str1,str2,strlen(str1),strlen(str2));*/
+   humming_distance(str1,str2,strlen(str1),strlen(str2));
    //int number = 0;
    //char** array = read_document(&number);
 
@@ -145,6 +148,16 @@ int main(int argc, char* argv[]){
    destroy_entry_index(&ix);
    free(my_word9->key_word);
    free(my_word9);
+*/
+   /*for(int i = 0; i < number; i++){
+      free(query_entries[i]->this_word->key_word);
+      free(query_entries[i]->this_word);
+      free(query_entries[i]);
+   }
+   free(query_entries);*/
+   entry_list my_entry_list = read_document5(&number);
+   print_list(my_entry_list);
+   destroy_entry_list(&my_entry_list);
    printf("\n\n");
    return 0;
 }

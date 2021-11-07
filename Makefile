@@ -18,7 +18,7 @@ functions.o:
 	gcc -c functions.c
 
 clean: 
-	rm functions.o test.o output
+	rm functions.o test.o
 
 norun: $(OBJECTS)
 	gcc -g $(OBJECTS) -o $(OUT)

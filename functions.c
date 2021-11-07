@@ -7,10 +7,7 @@
 enum error_code create_entry(const word* w, entry* e){
     *e = malloc(sizeof(Entry));
     (*e)->this_word = (word*)w;
-    (*e)->payload = malloc(sizeof(char*)*2);
-    char payload1[] = "str2";
-    (*e)->payload[0] = malloc(sizeof(payload1)*strlen(payload1));
-    strcpy((*e)->payload[0],payload1);
+    (*e)->payload = NULL;
     (*e)->next = NULL;
     return SUCCESS;
 }
@@ -19,8 +16,8 @@ enum error_code destroy_entry(entry* e){
     if(*e == NULL){
         return NULL_POINTER;
     }
-    free((*e)->payload[0]);
-    free((*e)->payload);
+    //free((*e)->payload[0]);
+    //free((*e)->payload);
     free((*e)->this_word->key_word);
     free((*e)->this_word);
     
@@ -91,7 +88,7 @@ enum error_code add_entry(entry_list* el, const entry* e){
 
 void print_list(const entry_list el){
     if(el == NULL){
-        return NULL_POINTER
+        return;
     }
     entry head = el->first_node;
     while(head != NULL){
@@ -177,7 +174,7 @@ int humming_distance(char* str1, char* str2, int m,int n){
 char** read_document(int* number){
     char** document_words = NULL;
     int number_of_words = 0;
-    FILE* fp = fopen("doc1.txt","r");
+    FILE* fp = fopen("queries.txt","r");
     if(fp == NULL){
         return NULL;
     }
@@ -199,13 +196,10 @@ char** read_document(int* number){
                 number_of_words++;
             }else{
                 int exists = 0;
-                printf("\nSearching for word: %s\n",word);
                 //check that this word doesnt already exist in the array; deduplicate here
                 for(int i=0; i < number_of_words;i++){
                     if(word != NULL && document_words[i] != NULL){
-                       printf("Comparing: %s = %s\n",document_words[i],word);
                        if(strcmp(document_words[i],word)==0){
-                           printf("\nmatch found for word: %s\n",word);
                            free(word);
                            exists = 1;
                            break;
@@ -381,4 +375,348 @@ enum error_code destroy_entry_index(bk_index* ix){
 
     return SUCCESS;
 
+}
+
+word** read_document2(int* number){
+    int number_of_words = 0;
+    word** query_words = NULL;
+    FILE* fp = fopen("queries.txt","r");
+    if(fp == NULL){
+        return NULL;
+    }
+
+    char c;
+    char* query_word = NULL;
+    word* my_word = NULL;
+    int word_length = 0;
+    while((c = fgetc (fp)) != EOF){
+
+        if((c == ' ' || c == '\n') && (word_length > 0)){     //full word has been read. add letters to form the word
+            //store word
+            //move to next
+            query_word[word_length] = '\0';
+            if(query_words == NULL){         //first word, initialize array
+                my_word = (word*)malloc(sizeof(word));
+                my_word->key_word = (char*)malloc(strlen(query_word)*sizeof(query_word));
+                strcpy(my_word->key_word,query_word);
+                query_words = malloc(sizeof(word*));
+                query_words[0] = my_word;
+                free(query_word);
+                number_of_words++;
+                /*free(query_words[0]->key_word);
+                free(query_words[0]);
+                free(query_words);
+                fclose(fp);
+                return NULL;*/
+            }else{
+                int exists = 0;
+                //check that this word doesnt already exist in the array; deduplicate here
+                for(int i=0; i < number_of_words;i++){
+                    if(query_word != NULL && query_words[i] != NULL){
+                       if(strcmp(query_words[i]->key_word,query_word)==0){
+                           free(query_word);
+                           exists = 1;
+                           break;
+                       }
+                    }
+                }
+                if(exists == 0){
+                    //if it doesnt, append the array
+                    word** temp_query_words = realloc(query_words,(number_of_words+1)*sizeof(char*));
+                    if(temp_query_words == NULL){
+                        *number = 0;
+                        return NULL;
+                    }
+                    query_words = temp_query_words;
+                    my_word = (word*)malloc(sizeof(word));
+                    my_word->key_word = (char*)malloc(strlen(query_word)*sizeof(query_word));
+                    strcpy(my_word->key_word,query_word);
+                    query_words[number_of_words] = my_word;
+                    free(query_word);
+                    number_of_words++;
+                }
+            }
+            word_length = 0;
+            query_word = NULL;
+            my_word = NULL;
+        }else{
+            word_length++;
+            char* temp_word;
+            if(query_word != NULL){
+                temp_word = (char*)realloc(query_word,(word_length+1)*sizeof(char));
+                if(temp_word == NULL){
+                    free(query_word);
+                    *number = 0;
+                    return NULL;
+                }
+                query_word = temp_word;
+            }else{
+                query_word = (char*)realloc(query_word,(word_length+1)*sizeof(char));
+            }
+            query_word[word_length-1] = c;
+        }
+    }
+    fclose(fp);
+    printf("Read %d words\n",number_of_words);
+    for(int i=0; i < number_of_words; i++){
+        printf("Index[%d]: %s\n",i,query_words[i]->key_word);
+    }
+    *number = number_of_words;
+    return query_words;
+}
+
+entry* read_document3(int* number){
+    int number_of_words = 0;
+    entry* query_entries = NULL;
+    FILE* fp = fopen("queries.txt","r");
+    if(fp == NULL){
+        return NULL;
+    }
+
+    char c;
+    char* query_word = NULL;
+    word* my_word = NULL;
+    int word_length = 0;
+    while((c = fgetc (fp)) != EOF){
+
+        if((c == ' ' || c == '\n') && (word_length > 0)){     //full word has been read. add letters to form the word
+            //store word
+            //move to next
+            query_word[word_length] = '\0';
+            if(query_entries == NULL){         //first word, initialize array
+                my_word = (word*)malloc(sizeof(word));
+                my_word->key_word = (char*)malloc(strlen(query_word)*sizeof(query_word));
+                strcpy(my_word->key_word,query_word);
+                query_entries = malloc(sizeof(entry));
+                query_entries[0] = malloc(sizeof(Entry));
+                query_entries[0]->this_word = my_word;
+                query_entries[0]->payload = NULL;
+                free(query_word);
+                number_of_words++;
+            }else{
+                int exists = 0;
+                //check that this word doesnt already exist in the array; deduplicate here
+                for(int i=0; i < number_of_words;i++){
+                    if(query_word != NULL && query_entries[i] != NULL){
+                       if(strcmp(query_entries[i]->this_word->key_word,query_word)==0){
+                           free(query_word);
+                           exists = 1;
+                           break;
+                       }
+                    }
+                }
+                if(exists == 0){
+                    //if it doesnt, append the array
+                    entry* temp_query_entries = realloc(query_entries,(number_of_words+1)*sizeof(entry));
+                    if(temp_query_entries == NULL){
+                        *number = 0;
+                        return NULL;
+                    }
+                    query_entries = temp_query_entries;
+                    my_word = (word*)malloc(sizeof(word));
+                    my_word->key_word = (char*)malloc(strlen(query_word)*sizeof(query_word));
+                    strcpy(my_word->key_word,query_word);
+                    query_entries[number_of_words] = malloc(sizeof(Entry));
+                    query_entries[number_of_words]->this_word = my_word;
+                    query_entries[number_of_words]->payload = NULL;
+                    free(query_word);
+                    number_of_words++;
+                }
+            }
+            word_length = 0;
+            query_word = NULL;
+            my_word = NULL;
+        }else{
+            word_length++;
+            char* temp_word;
+            if(query_word != NULL){
+                temp_word = (char*)realloc(query_word,(word_length+1)*sizeof(char));
+                if(temp_word == NULL){
+                    free(query_word);
+                    *number = 0;
+                    return NULL;
+                }
+                query_word = temp_word;
+            }else{
+                query_word = (char*)realloc(query_word,(word_length+1)*sizeof(char));
+            }
+            query_word[word_length-1] = c;
+        }
+    }
+    fclose(fp);
+    printf("Read %d words\n",number_of_words);
+    for(int i=0; i < number_of_words; i++){
+        printf("Index[%d]: %s\n",i,query_entries[i]->this_word->key_word);
+    }
+    *number = number_of_words;
+    return query_entries;
+}
+
+entry_list read_document4(int* number){
+    int number_of_words = 0;
+    entry_list my_entry_list = NULL;
+    entry* query_entries = NULL;
+    create_entry_list(&my_entry_list); 
+    FILE* fp = fopen("queries.txt","r");
+    if(fp == NULL){
+        return NULL;
+    }
+
+    char c;
+    char* query_word = NULL;
+    word* my_word = NULL;
+    int word_length = 0;
+    while((c = fgetc (fp)) != EOF){
+
+        if((c == ' ' || c == '\n') && (word_length > 0)){     //full word has been read. add letters to form the word
+            //store word
+            //move to next
+            query_word[word_length] = '\0';
+            if(query_entries == NULL){         //first word, initialize array
+                my_word = (word*)malloc(sizeof(word));
+                my_word->key_word = (char*)malloc(strlen(query_word)*sizeof(query_word));
+                strcpy(my_word->key_word,query_word);
+                query_entries = malloc(sizeof(entry));
+                query_entries[0] = malloc(sizeof(Entry));
+                query_entries[0]->this_word = my_word;
+                query_entries[0]->payload = NULL;
+                query_entries[0]->next = NULL;
+                add_entry(&my_entry_list,&query_entries[0]);
+                free(query_word);
+                number_of_words++;
+            }else{
+                int exists = 0;
+                //check that this word doesnt already exist in the array; deduplicate here
+                for(int i=0; i < number_of_words;i++){
+                    if(query_word != NULL && query_entries[i] != NULL){
+                       if(strcmp(query_entries[i]->this_word->key_word,query_word)==0){
+                           free(query_word);
+                           exists = 1;
+                           break;
+                       }
+                    }
+                }
+                if(exists == 0){
+                    //if it doesnt, append the array
+                    entry* temp_query_entries = realloc(query_entries,(number_of_words+1)*sizeof(entry));
+                    if(temp_query_entries == NULL){
+                        *number = 0;
+                        return NULL;
+                    }
+                    query_entries = temp_query_entries;
+                    my_word = (word*)malloc(sizeof(word));
+                    my_word->key_word = (char*)malloc(strlen(query_word)*sizeof(query_word));
+                    strcpy(my_word->key_word,query_word);
+                    query_entries[number_of_words] = malloc(sizeof(Entry));
+                    query_entries[number_of_words]->this_word = my_word;
+                    query_entries[number_of_words]->payload = NULL;
+                    query_entries[number_of_words]->next = NULL;
+                    free(query_word);
+                    add_entry(&my_entry_list,&query_entries[number_of_words]);
+                    number_of_words++;
+                }
+            }
+            word_length = 0;
+            query_word = NULL;
+            my_word = NULL;
+        }else{
+            word_length++;
+            char* temp_word;
+            if(query_word != NULL){
+                temp_word = (char*)realloc(query_word,(word_length+1)*sizeof(char));
+                if(temp_word == NULL){
+                    free(query_word);
+                    *number = 0;
+                    return NULL;
+                }
+                query_word = temp_word;
+            }else{
+                query_word = (char*)realloc(query_word,(word_length+1)*sizeof(char));
+            }
+            query_word[word_length-1] = c;
+        }
+    }
+    fclose(fp);
+    *number = number_of_words;
+    return my_entry_list;
+}
+
+entry_list read_document5(int* number){
+    int number_of_words = 0;
+    entry_list my_entry_list = NULL;
+    create_entry_list(&my_entry_list); 
+    FILE* fp = fopen("queries.txt","r");
+    if(fp == NULL){
+        return NULL;
+    }
+
+    char c;
+    char* query_word = NULL;
+    word* my_word = NULL;
+    int word_length = 0;
+    while((c = fgetc (fp)) != EOF){
+
+        if((c == ' ' || c == '\n') && (word_length > 0)){     //full word has been read. add letters to form the word
+            //store word
+            //move to next
+            query_word[word_length] = '\0';
+            if(number_of_words == 0){         //first word, initialize array
+                my_word = (word*)malloc(sizeof(word));
+                my_word->key_word = (char*)malloc(strlen(query_word)*sizeof(query_word));
+                strcpy(my_word->key_word,query_word);
+                entry word_entry = NULL;
+                create_entry(my_word,&word_entry);
+                add_entry(&my_entry_list,&word_entry);
+                free(query_word);
+                number_of_words++;
+            }else{
+                int exists = 0;
+                //check that this word doesnt already exist in the array; deduplicate here
+                entry* temp = get_first(&my_entry_list);
+                entry temp_entry = *temp;
+                while(temp_entry != NULL){
+                    if(query_word != NULL && temp_entry->this_word->key_word != NULL){
+                       if(strcmp(temp_entry->this_word->key_word,query_word)==0){
+                           free(query_word);
+                           exists = 1;
+                           break;
+                       }
+                    }
+                    temp_entry = temp_entry->next;
+                }
+                if(exists == 0){
+                    //if it doesnt, append the array
+                    my_word = (word*)malloc(sizeof(word));
+                    my_word->key_word = (char*)malloc(strlen(query_word)*sizeof(query_word));
+                    strcpy(my_word->key_word,query_word);
+                    entry word_entry = NULL;
+                    create_entry(my_word,&word_entry);
+                    add_entry(&my_entry_list,&word_entry);
+                    free(query_word);
+                    number_of_words++;
+                }
+            }
+            word_length = 0;
+            query_word = NULL;
+            my_word = NULL;
+        }else{
+            word_length++;
+            char* temp_word;
+            if(query_word != NULL){
+                temp_word = (char*)realloc(query_word,(word_length+1)*sizeof(char));
+                if(temp_word == NULL){
+                    free(query_word);
+                    *number = 0;
+                    return NULL;
+                }
+                query_word = temp_word;
+            }else{
+                query_word = (char*)realloc(query_word,(word_length+1)*sizeof(char));
+            }
+            query_word[word_length-1] = c;
+        }
+    }
+    fclose(fp);
+    *number = number_of_words;
+    return my_entry_list;
 }
