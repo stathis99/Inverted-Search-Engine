@@ -49,20 +49,14 @@ entry* get_next(const entry_list* el, entry* e);
 //distance functions
 int min2(int x, int y);
 int min3(int x, int y, int z);
-char** read_document(int* number);
-word** read_document2(int* number);
-entry* read_document3(int* number); //this is the best, creates entries
-// 4 modifies 3 to create entry list by passing every created entry
-entry_list read_document4(int* number); //this is the best, creates entries
-//finally use create_entry
-entry_list read_document5(int* number);
+entry_list read_document(int* number);
 int editDist(char* str1, char* str2, int m, int n);
 int humming_distance(char* str1, char* str2, int m,int n);
 
 
 enum error_code build_entry_index(const entry_list* el, enum match_type type, bk_index* ix);
 enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result);
-void print_bk_tree(bk_index ix,int pos);
+void print_bk_tree(bk_index ix,int pos,int* number);
 enum error_code destroy_entry_index(bk_index* ix);
 void bk_create_node(bk_index* ix,word* entry_word,int weight);
 int bk_add_node(bk_index* ix,word* entry_word,enum match_type type);
