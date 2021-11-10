@@ -286,11 +286,13 @@ enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, e
 
     //traverse the tree retrospectively 
     while(temp_child != NULL){
-        //if distance child from the parent is  [𝑑 − 𝑛, 𝑑 + 𝑛] than call retrospectively 
+        //if distance child from the parent is  [𝑑 − 𝑛, 𝑑 + 𝑛] then call retrospectively 
         if(temp_child->weight >= min_dist && temp_child->weight <= max_dist ){
             lookup_entry_index(w,&temp_child,threshold,result);
         }
         temp_child = temp_child->next;   
+
+        //=================================================================>edw prepei na ekmetaleftoume oti oi komvoi einai sthn seira 
     }
     
     return SUCCESS;
