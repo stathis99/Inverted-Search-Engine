@@ -25,7 +25,7 @@ unit_test.o: unit_test.c
 	gcc -c unit_test.c
 
 clean: 
-	rm functions.o test.o
+	rm functions.o test.o output
 
 norun: $(OBJECTS)
 	gcc -g $(OBJECTS) -o $(OUT)

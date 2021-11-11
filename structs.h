@@ -60,4 +60,6 @@ void print_bk_tree(bk_index ix,int pos,int* number);
 enum error_code destroy_entry_index(bk_index* ix);
 void bk_create_node(bk_index* ix,word* entry_word,int weight);
 int bk_add_node(bk_index* ix,word* entry_word,enum match_type type);
-
+entry_list read_queries(int* number,FILE* fp);
+int count_documents(FILE* fp);
+entry_list* read_documents(int* number,FILE* fp,int number_of_documents);

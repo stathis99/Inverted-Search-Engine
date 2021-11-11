@@ -223,14 +223,12 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type){
             }
             if(dist < temp_child->weight){
                 if(temp_child == (*ix)->child){     //replaces previous child
-                    printf("\nWord %s has distance of %d from %s and previous word %s has %d.Swapping them\n",entry_word->key_word,dist,(*ix)->this_word->key_word,temp_child->this_word->key_word,temp_child->weight);
                     bk_index new_index = NULL;
                     bk_create_node(&new_index,entry_word,dist);
                     (*ix)->child = new_index;
                     new_index->next = temp_child;
                     return 1;
                 }else{                              //new node is between 2 existing ones, add it in the middle
-                    printf("\nWord %s has distance of %d from %s and previous word %s has %d.Swapping them\n",entry_word->key_word,dist,(*ix)->this_word->key_word,temp_child->this_word->key_word,temp_child->weight);
                     bk_index new_index = NULL;
                     bk_create_node(&new_index,entry_word,dist);
                     bk_index temp_next = previous_child->next;
@@ -394,4 +392,126 @@ entry_list read_document(int* number){
     fclose(fp);
     *number = number_of_words;
     return my_entry_list;
+}
+
+entry_list read_queries(int* number,FILE* fp){       //max word length is 31
+    int number_of_words = 0;
+    entry_list my_entry_list = NULL;
+    create_entry_list(&my_entry_list); 
+    if(fp == NULL){
+        return NULL;
+    }
+
+    char read_word[31];
+    while(fscanf(fp," %31s",read_word) == 1){
+        if(strcmp(read_word,"$") == 0){      //end of queries
+            return my_entry_list;
+        }
+        //read word
+        //check if it already exists in list
+        entry* temp = get_first(&my_entry_list);
+        entry temp_entry = *temp;
+        int found = -1;
+        while(temp_entry != NULL){
+            if(strcmp(temp_entry->this_word->key_word,read_word)==0){
+                found = 1;
+                break;
+            }
+            temp_entry = temp_entry->next;
+        }
+        if(found == -1){
+            //create word
+            word* my_word = NULL;
+            my_word = (word*)malloc(sizeof(word));
+            my_word->key_word = (char*)malloc(strlen(read_word)*sizeof(read_word));
+            strcpy(my_word->key_word,read_word);
+
+            //create entry
+            entry word_entry = NULL;
+            create_entry(my_word,&word_entry);
+
+            //add entry to list
+            add_entry(&my_entry_list,&word_entry);
+            number_of_words++;
+        }
+    }
+
+    return my_entry_list;
+}
+
+int count_documents(FILE* fp){
+    int number = 0;
+    char read_word[31];
+    while(fscanf(fp," %31s",read_word) == 1){
+        if(strcmp(read_word,"$") == 0){      //end of queries
+            number++;
+        }
+    }
+    return number;
+}
+
+entry_list* read_documents(int* number,FILE* fp,int number_of_documents){       //max word length is 31
+    
+    entry_list* document_entry_list_array = malloc(sizeof(entry_list)*number_of_documents);
+    int documents_read = 0;
+    if(fp == NULL){
+        return NULL;
+    }
+    char read_word[31];
+
+    //ignore all queries, get to first document
+    while(fscanf(fp," %31s",read_word) == 1){
+        if(strcmp(read_word,"$") == 0){      //end of queries
+            break;
+        }
+    }
+
+    entry_list document_entry_list = NULL;
+    create_entry_list(&document_entry_list); 
+
+    while(fscanf(fp," %31s",read_word) != EOF){
+        //read word
+        //check if it already exists in list
+        if(strcmp(read_word,"$") == 0){         //one full document has been read, move on to the next one
+            //store it and move on if needed
+            document_entry_list_array[documents_read] = document_entry_list;
+            documents_read++;
+            if(documents_read < number_of_documents){   //more documents to be read        //it is not the last one
+                document_entry_list = NULL;
+                create_entry_list(&document_entry_list);
+                printf("i get here\n"); 
+            }
+        }else{                                  //keep adding words to current document
+            entry* temp = get_first(&document_entry_list);
+            entry temp_entry = *temp;
+            int found = -1;
+            while(temp_entry != NULL){              //search for this word
+                if(strcmp(temp_entry->this_word->key_word,read_word) == 0){
+                    found = 1;
+                    break;
+                }
+                temp_entry = temp_entry->next;
+            }
+            if(found == -1){
+                //create word
+                word* my_word = NULL;
+                my_word = (word*)malloc(sizeof(word));
+                my_word->key_word = (char*)malloc(strlen(read_word)*sizeof(read_word));
+                strcpy(my_word->key_word,read_word);
+
+                //create entry
+                entry word_entry = NULL;
+                create_entry(my_word,&word_entry);
+
+                //add entry to list
+                add_entry(&document_entry_list,&word_entry);
+            }
+        }
+    }
+    
+    //save the last document
+    document_entry_list_array[documents_read] = document_entry_list;
+
+    return document_entry_list_array;
+    
 }
