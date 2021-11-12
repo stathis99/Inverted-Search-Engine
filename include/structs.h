@@ -63,3 +63,4 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type);
 entry_list read_queries(int* number,FILE* fp);
 int count_documents(FILE* fp);
 entry_list* read_documents(int* number,FILE* fp,int number_of_documents);
+void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold);

@@ -253,8 +253,10 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type){
 }
 
 enum error_code build_entry_index(const entry_list* el, enum match_type type, bk_index* ix){
+    if((*el)->first_node == NULL){
+        return NULL_POINTER;
+    }
     entry temp_entry = (*el)->first_node;
-
     //create the root of the tree
     if((*ix) == NULL){
         bk_create_node(ix,temp_entry->this_word,0);
@@ -515,4 +517,23 @@ entry_list* read_documents(int* number,FILE* fp,int number_of_documents){       
 
     return document_entry_list_array;
     
+}
+
+void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold){
+    entry head = doc_list->first_node;
+    while(head != NULL){
+        entry_list el ;
+        create_entry_list(&el);
+        printf("%s\n",head->this_word->key_word);
+        lookup_entry_index(head->this_word,ix,threshold,&el);
+        if(el != NULL ){
+            printf("Word %s matches with:\n",head->this_word->key_word);
+            entry* result = get_first(&el);
+            while(*result != NULL){
+                printf("%s\n",(*result)->this_word->key_word);
+                *result = (*result)->next;
+            }
+        }
+        head = head->next;
+    }
 }
