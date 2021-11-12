@@ -171,13 +171,13 @@ int humming_distance(char* str1, char* str2, int m,int n){
 
 
 //bk functions
- void print_bk_tree(bk_index ix, int pos,int* number){   
+ void print_bk_tree(bk_index ix, int pos){   
     bk_index temp_child  = ix->child;
-    *number += 1;
+    
     printf("\n\n   %s:%d  %d \n\n",ix->this_word->key_word,ix->weight,pos);
 
     while(temp_child != NULL){
-        print_bk_tree(temp_child,pos-1,number);
+        print_bk_tree(temp_child,pos-1);
         temp_child = temp_child->next;   
     }
     return;
