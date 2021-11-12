@@ -233,7 +233,8 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type){
                     bk_create_node(&new_index,entry_word,dist);
                     bk_index temp_next = previous_child->next;
                     previous_child->next = new_index;
-                    new_index->next = temp_next;
+                    new_index->next = temp_child;
+                    return 1;
                 }
             }
             //if we wave seen all ix children and there is no child with same distance
