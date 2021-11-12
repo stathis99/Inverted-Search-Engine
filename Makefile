@@ -1,32 +1,38 @@
+#
+# In order to execute this "Makefile" just type "make"
+#
+INCLUDE = ./tests
+
 HEADERS = structs.h
-SOURCES = test.c functions.c
-SOURCE1	= unit_test.c
-OBJECTS = test.o functions.o
-OBJS1   = unit_test.o
-OUT		= output
-OUTTEST = testing
+SOURCES0 = main.c functions.c
+SOURCES1 = $(INCLUDE)/unit_test.c
+OBJECTS0 = main.o functions.o
+OBJECTS1 = $(INCLUDE)/unit_test.o
+OUT		= project1
+OUTTEST = test
+CC	= gcc
 
-all: $(OBJECTS) $(OBJS1)
-	gcc -g $(OBJECTS) -o $(OUT)
-	gcc -g $(OBJS1) -o $(OUTTEST)
+all: $(OBJECTS0) $(OBJECTS1)
+	$(CC) -g $(OBJECTS0) -o $(OUT)
+	$(CC) -g $(OBJECTS1) -o $(OUTTEST)
 	make clean
-	./output
+	
 
-output: test.o
-	gcc test.o -o $(OUT)
+project1: main.o
+	$(CC) main.o -o $(OUT)
 
-test.o: test.c
-	gcc -c test.c 
+main.o: main.c
+	$(CC) -c main.c 
 
 functions.o:
-	gcc -c functions.c
+	$(CC) -c functions.c
 
 unit_test.o: unit_test.c 
-	gcc -c unit_test.c
+	$(CC) -c unit_test.c
 
 clean: 
-	rm functions.o test.o output
+	rm functions.o main.o $(INCLUDE)/unit_test.o
 
-norun: $(OBJECTS)
-	gcc -g $(OBJECTS) -o $(OUT)
+norun: $(OBJECTS0)
+	$(CC) -g $(OBJECTS0) -o $(OUT)
 

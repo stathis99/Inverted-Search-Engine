@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "structs.h"
+#include "./include/structs.h"
 #include <string.h>
 
 int main(int argc, char* argv[]){
@@ -21,7 +21,7 @@ int main(int argc, char* argv[]){
    enum match_type my_match_type = EDIT_DIST;
    
    //open the file we are reading from
-   FILE* fp = fopen("queries.txt","r");
+   FILE* fp = fopen("./files/queries.txt","r");
    if(fp == NULL){
       printf("Couldnt open file.\n");
       exit(-1);

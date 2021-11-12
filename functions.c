@@ -1,4 +1,4 @@
-#include "structs.h"
+#include "./include/structs.h"
 #include <stdlib.h>
 #include <string.h>
 
