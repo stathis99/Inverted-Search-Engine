@@ -29,9 +29,6 @@ functions.o:
 unit_test.o: unit_test.c 
 	$(CC) -c unit_test.c
 
-test:
-	./test
-	
 clean: 
 	rm functions.o main.o $(INCLUDE)/unit_test.o
 
@@ -43,5 +40,9 @@ valgrind: $(OBJECTS0) $(OBJECTS1)
 	$(CC) -g $(OBJECTS1) -o $(OUTTEST)
 	make clean
 	valgrind ./$(OUT)
+
+test1:
+	./test
+
 
 
