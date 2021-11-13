@@ -29,6 +29,9 @@ functions.o:
 unit_test.o: unit_test.c 
 	$(CC) -c unit_test.c
 
+test:
+	./test
+	
 clean: 
 	rm functions.o main.o $(INCLUDE)/unit_test.o
 
