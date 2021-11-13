@@ -1,2 +1,9 @@
 # ignore all compiled code
 *.ο
+
+#vscode files
+.vs*
+
+#executables
+project1
+test
