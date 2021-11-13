@@ -1,3 +1,3 @@
 # project1
 
-![Build Status](https://github.com/chatziko-k08/lecture-code/workflows/run-tests/badge.svg)
+![Build Status](https://github.com/stathis99/project1/.github/workflows/badge.svg)
