@@ -36,6 +36,7 @@ enum match_type { EDIT_DIST = 1, HUMMING_DIST = 2};
 //Entry* create_entry();
 
 //enum error_code create_entry(const word* w, entry** e);
+void free_word(word* w);
 enum error_code create_entry(const word* w, entry* e);
 enum error_code destroy_entry(entry* e);
 enum error_code create_entry_list(entry_list* el);

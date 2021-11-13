@@ -42,13 +42,14 @@ int main(int argc, char* argv[]){
    rewind(fp);
 
    //read and deduplicate the document words and create an entry list
-   entry_list* document_entry_list_array = read_documents(&number,fp,number_of_documents);
+   int doc_number = 0;
+   entry_list* document_entry_list_array = read_documents(&doc_number,fp,number_of_documents);
 
    //print entry list for each document
-   /*for(int i = 0 ; i < number_of_documents; i++){
+   for(int i = 0 ; i < number_of_documents; i++){
       printf("\n\nthis is document %d\n",i);
       print_list(document_entry_list_array[i]);
-   }*/
+   }
 
    //check every entry list in BK
    for(int i = 0 ; i < number_of_documents; i++){

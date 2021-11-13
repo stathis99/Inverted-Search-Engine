@@ -4,9 +4,21 @@
 
 
 //entry functions
+void free_word(word* my_word){
+    free(my_word->key_word);
+    free(my_word);
+}
+
+
 enum error_code create_entry(const word* w, entry* e){
     *e = malloc(sizeof(Entry));
-    (*e)->this_word = (word*)w;
+
+    //duplicate the word
+    (*e)->this_word = malloc(sizeof(word));
+    (*e)->this_word->key_word = malloc(sizeof(char)*sizeof(w->key_word));
+    strcpy((*e)->this_word->key_word,w->key_word);
+    //instead of doing this, just copying the pointer
+    //(*e)->this_word = (word*)w;
     (*e)->payload = NULL;
     (*e)->next = NULL;
     return SUCCESS;
@@ -20,7 +32,7 @@ enum error_code destroy_entry(entry* e){
     //free((*e)->payload);
     free((*e)->this_word->key_word);
     free((*e)->this_word);
-    
+
     return SUCCESS;
 }
 
@@ -50,12 +62,13 @@ enum error_code destroy_entry_list(entry_list* el){
         free(temp);
     }
     free(*el);
+    *el = NULL;
     return SUCCESS;
 }
 
 unsigned int get_number_entries(const entry_list* el){
     if(*el == NULL){
-        return NULL_POINTER;
+        return 0;
     }
     entry temp = (*el)->first_node;
     int number = 0;
@@ -312,7 +325,7 @@ enum error_code destroy_entry_index(bk_index* ix){
         destroy_entry_index(&temp_child);
         temp_child = temp_child_next;   
     }
-
+    *ix = NULL;
     return SUCCESS;
 
 }
@@ -344,6 +357,7 @@ entry_list read_document(int* number){
                 create_entry(my_word,&word_entry);
                 add_entry(&my_entry_list,&word_entry);
                 free(query_word);
+                free_word(my_word);
                 number_of_words++;
             }else{
                 int exists = 0;
@@ -369,6 +383,7 @@ entry_list read_document(int* number){
                     create_entry(my_word,&word_entry);
                     add_entry(&my_entry_list,&word_entry);
                     free(query_word);
+                    free_word(my_word);
                     number_of_words++;
                 }
             }
@@ -432,7 +447,7 @@ entry_list read_queries(int* number,FILE* fp){       //max word length is 31
             //create entry
             entry word_entry = NULL;
             create_entry(my_word,&word_entry);
-
+            free_word(my_word);
             //add entry to list
             add_entry(&my_entry_list,&word_entry);
             number_of_words++;
@@ -505,7 +520,7 @@ entry_list* read_documents(int* number,FILE* fp,int number_of_documents){       
                 //create entry
                 entry word_entry = NULL;
                 create_entry(my_word,&word_entry);
-
+                free_word(my_word);
                 //add entry to list
                 add_entry(&document_entry_list,&word_entry);
             }
@@ -529,11 +544,13 @@ void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold){
         if(el != NULL ){
             printf("Word %s matches with:\n",head->this_word->key_word);
             entry* result = get_first(&el);
-            while(*result != NULL){
-                printf("%s\n",(*result)->this_word->key_word);
-                *result = (*result)->next;
+            entry temp = *result;
+            while(temp != NULL){
+                printf("%s\n",temp->this_word->key_word);
+                temp = temp->next;
             }
         }
+        destroy_entry_list(&el);
         head = head->next;
     }
 }
