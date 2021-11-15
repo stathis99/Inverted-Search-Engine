@@ -207,7 +207,7 @@ void bk_create_node(bk_index* ix,word* entry_word,int weight){
 
 }
 
-int bk_add_node(bk_index* ix,word* entry_word,enum match_type type){
+int bk_add_node_sort(bk_index* ix,word* entry_word,enum match_type type){
 
     bk_index temp_child  = (*ix)->child;
     bk_index previous_child = NULL;
@@ -231,7 +231,7 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type){
 
             //if exists child with same dist go to this child , child
             if(temp_child->weight == dist){
-                bk_add_node(&temp_child, entry_word, type);
+                bk_add_node_sort(&temp_child, entry_word, type);
                 return 1;
             }
             if(dist < temp_child->weight){
@@ -265,7 +265,7 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type){
     return 1;
 }
 
-enum error_code build_entry_index(const entry_list* el, enum match_type type, bk_index* ix){
+enum error_code build_entry_index_sort(const entry_list* el, enum match_type type, bk_index* ix){
     if((*el)->first_node == NULL){
         return NULL_POINTER;
     }
@@ -555,7 +555,7 @@ void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold){
     }
 }
 
-int bk_add_node_no_sort(bk_index* ix,word* entry_word,enum match_type type){
+int bk_add_node(bk_index* ix,word* entry_word,enum match_type type){
     bk_index temp_child  = (*ix)->child;
     int dist;
 
@@ -577,7 +577,7 @@ int bk_add_node_no_sort(bk_index* ix,word* entry_word,enum match_type type){
 
             //if exists child with same dist go to this child , child
             if(temp_child->weight == dist){
-                bk_add_node_no_sort(&temp_child ,entry_word,type);
+                bk_add_node(&temp_child ,entry_word,type);
                 return 1;
             }
             //if we wave seen all ix children and there is no child with same distance
@@ -592,7 +592,7 @@ int bk_add_node_no_sort(bk_index* ix,word* entry_word,enum match_type type){
     return 1;
 }
 
-enum error_code build_entry_index_no_sort(const entry_list* el, enum match_type type, bk_index* ix){
+enum error_code build_entry_index(const entry_list* el, enum match_type type, bk_index* ix){
     if((*el)->first_node == NULL){
         return NULL_POINTER;
     }
@@ -605,7 +605,7 @@ enum error_code build_entry_index_no_sort(const entry_list* el, enum match_type 
     //for every word in the list add it to the tree
     temp_entry = temp_entry->next;
     while(temp_entry != NULL){
-        bk_add_node_no_sort(ix,temp_entry->this_word,type);
+        bk_add_node(ix,temp_entry->this_word,type);
         temp_entry = temp_entry->next;
     }
 

@@ -40,7 +40,7 @@ int main(int argc, char* argv[]){
    //create BK tree from entry list
    bk_index ix = NULL;
    //enum error_code code = build_entry_index(&query_entry_list,my_match_type,&ix);
-   enum error_code code = build_entry_index_no_sort(&query_entry_list,my_match_type,&ix);
+   enum error_code code = build_entry_index(&query_entry_list,my_match_type,&ix);
 
    if(code == NULL_POINTER){
       printf("Null Pointer Given\n");
