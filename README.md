@@ -12,8 +12,8 @@
 
 ./project1 match_type threshold
 
-match_type 0 = HUMMING_DIST
-match_type 1 = EDIT_DIST
+- match_type 0 = HUMMING_DIST
+- match_type 1 = EDIT_DIST
 
 ```bash
     make
