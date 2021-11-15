@@ -130,40 +130,40 @@ int min3(int x, int y, int z) {
 
 
 //distance functions
-int editDist(char* str1, char* str2, int m, int n){
+int edit_dist(char* str1, char* str2, int len1, int len2){
     // Create a table to store results of subproblems
-    int dp[m + 1][n + 1];
+    int cost[len1 + 1][len2 + 1];
   
     // Fill d[][] in bottom up manner
-    for (int i = 0; i <= m; i++) {
-        for (int j = 0; j <= n; j++) {
+    for (int i = 0; i <= len1; i++) {
+        for (int j = 0; j <= len2; j++) {
             // If first string is empty, only option is to
             // insert all characters of second string
             if (i == 0)
-                dp[i][j] = j; // Min. operations = j
+                cost[i][j] = j; // Min. operations = j
   
             // If second string is empty, only option is to
             // remove all characters of second string
             else if (j == 0)
-                dp[i][j] = i; // Min. operations = i
+                cost[i][j] = i; // Min. operations = i
   
             // If last characters are same, ignore last char
             // and recur for remaining string
             else if (str1[i - 1] == str2[j - 1])
-                dp[i][j] = dp[i - 1][j - 1];
+                cost[i][j] = cost[i - 1][j - 1];
   
             // If the last character is different, consider
             // all possibilities and find the minimum
             else
-                dp[i][j]
+                cost[i][j]
                     = 1
-                      + min3(dp[i][j - 1], // Insert
-                            dp[i - 1][j], // Remove
-                            dp[i - 1][j - 1]); // Replace
+                      + min3(cost[i][j - 1], // Insert
+                            cost[i - 1][j], // Remove
+                            cost[i - 1][j - 1]); // Replace
         }
     }
   
-    return dp[m][n];
+    return cost[len1][len2];
 }
 
 int humming_distance(char* str1, char* str2, int m,int n){
@@ -213,7 +213,7 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type){
     bk_index previous_child = NULL;
     int dist;
     if(type == EDIT_DIST){
-        dist = editDist(entry_word->key_word,(*ix)->this_word->key_word,strlen(entry_word->key_word),strlen((*ix)->this_word->key_word));
+        dist = edit_dist(entry_word->key_word,(*ix)->this_word->key_word,strlen(entry_word->key_word),strlen((*ix)->this_word->key_word));
     }else{
         dist = humming_distance(entry_word->key_word,(*ix)->this_word->key_word,strlen(entry_word->key_word),strlen((*ix)->this_word->key_word));
     }
@@ -287,7 +287,7 @@ enum error_code build_entry_index(const entry_list* el, enum match_type type, bk
 
 enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result){
     bk_index temp_child  = (*ix)->child;
-    int dist = editDist(w->key_word,(*ix)->this_word->key_word,strlen(w->key_word),strlen((*ix)->this_word->key_word));
+    int dist = edit_dist(w->key_word,(*ix)->this_word->key_word,strlen(w->key_word),strlen((*ix)->this_word->key_word));
     int min_dist = dist - threshold;
     int max_dist = dist + threshold;
 
@@ -560,7 +560,7 @@ int bk_add_node_no_sort(bk_index* ix,word* entry_word,enum match_type type){
     int dist;
 
     if(type == EDIT_DIST){
-        dist = editDist(entry_word->key_word,(*ix)->this_word->key_word,strlen(entry_word->key_word),strlen((*ix)->this_word->key_word));
+        dist = edit_dist(entry_word->key_word,(*ix)->this_word->key_word,strlen(entry_word->key_word),strlen((*ix)->this_word->key_word));
     }else{
         dist = humming_distance(entry_word->key_word,(*ix)->this_word->key_word,strlen(entry_word->key_word),strlen((*ix)->this_word->key_word));
     }

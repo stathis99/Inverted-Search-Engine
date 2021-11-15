@@ -5,11 +5,22 @@
 
 int main(int argc, char* argv[]){
 
+   if(argc != 3){
+      printf("Invalid number of arguments given\n");
+      exit(-1);
+   }
+   enum match_type my_match_type;
    //choose EDIT_DIST or HUMMING_DIST
-   enum match_type my_match_type = EDIT_DIST;
-   
+   if(atoi(argv[1]) == 1){
+      my_match_type = EDIT_DIST;
+   }else if(atoi(argv[1]) == 2){
+      my_match_type = HUMMING_DIST;
+   }else{
+      printf("Invalid match type given\n");
+      exit(-1);
+   }
    //chose a threshold 
-   int threshold = 2;
+   int threshold = atoi(argv[2]);
 
    int number = 0;
 
