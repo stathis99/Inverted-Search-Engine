@@ -65,3 +65,8 @@ entry_list read_queries(int* number,FILE* fp);
 int count_documents(FILE* fp);
 entry_list* read_documents(int* number,FILE* fp,int number_of_documents);
 void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold);
+
+
+//new functions to create BK without sorting inner nodes
+int bk_add_node_no_sort(bk_index* ix,word* entry_word,enum match_type type);
+enum error_code build_entry_index_no_sort(const entry_list* el, enum match_type type, bk_index* ix);
