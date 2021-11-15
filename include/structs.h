@@ -51,7 +51,7 @@ entry* get_next(const entry_list* el, entry* e);
 int min2(int x, int y);
 int min3(int x, int y, int z);
 entry_list read_document(int* number);
-int editDist(char* str1, char* str2, int m, int n);
+int edit_Dist(char* str1, char* str2, int len1, int len2);
 int humming_distance(char* str1, char* str2, int m,int n);
 
 
