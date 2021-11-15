@@ -17,8 +17,6 @@ enum error_code create_entry(const word* w, entry* e){
     (*e)->this_word = malloc(sizeof(word));
     (*e)->this_word->key_word = malloc(sizeof(char)*sizeof(w->key_word));
     strcpy((*e)->this_word->key_word,w->key_word);
-    //instead of doing this, just copying the pointer
-    //(*e)->this_word = (word*)w;
     (*e)->payload = NULL;
     (*e)->next = NULL;
     return SUCCESS;
@@ -105,7 +103,7 @@ void print_list(const entry_list el){
     }
     entry head = el->first_node;
     while(head != NULL){
-        printf("%s - ",head->this_word->key_word);
+        printf("%s ",head->this_word->key_word);
         head = head-> next;
     }
 }
@@ -305,8 +303,6 @@ enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, e
             lookup_entry_index(w,&temp_child,threshold,result);
         }
         temp_child = temp_child->next;   
-
-        //=================================================================>edw prepei na ekmetaleftoume oti oi komvoi einai sthn seira 
     }
     
     return SUCCESS;
@@ -497,7 +493,6 @@ entry_list* read_documents(int* number,FILE* fp,int number_of_documents){       
             if(documents_read < number_of_documents){   //more documents to be read        //it is not the last one
                 document_entry_list = NULL;
                 create_entry_list(&document_entry_list);
-                printf("i get here\n"); 
             }
         }else{                                  //keep adding words to current document
             entry* temp = get_first(&document_entry_list);
@@ -539,7 +534,6 @@ void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold){
     while(head != NULL){
         entry_list el ;
         create_entry_list(&el);
-        printf("%s\n",head->this_word->key_word);
         lookup_entry_index(head->this_word,ix,threshold,&el);
         if(el != NULL ){
             printf("Word %s matches with:\n",head->this_word->key_word);

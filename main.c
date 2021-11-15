@@ -9,6 +9,7 @@ int main(int argc, char* argv[]){
       printf("Invalid number of arguments given\n");
       exit(-1);
    }
+
    enum match_type my_match_type;
    //choose EDIT_DIST or HUMMING_DIST
    if(atoi(argv[1]) == 1){
@@ -39,14 +40,13 @@ int main(int argc, char* argv[]){
 
    //create BK tree from entry list
    bk_index ix = NULL;
-   //enum error_code code = build_entry_index(&query_entry_list,my_match_type,&ix);
    enum error_code code = build_entry_index(&query_entry_list,my_match_type,&ix);
 
    if(code == NULL_POINTER){
       printf("Null Pointer Given\n");
       exit(-1);
    }
-   print_bk_tree(ix,0);
+   //print_bk_tree(ix,0);
 
    int number_of_documents = count_documents(fp) + 1;
    //printf("\n\n%d documents to be read\n\n",number_of_documents);
@@ -64,10 +64,13 @@ int main(int argc, char* argv[]){
       print_list(document_entry_list_array[i]);
    }
 
+   printf("\n\n Results: \n\n");
+
    //check every entry list in BK
    for(int i = 0 ; i < number_of_documents; i++){
-      printf("Checking document no. %d:\n",i+1);
+      printf("Checking document no. %d:\n\n",i+1);
       check_entry_list(document_entry_list_array[i],&ix,threshold);
+      printf("\n\n");
    }
    
    //destroy entry list for each document

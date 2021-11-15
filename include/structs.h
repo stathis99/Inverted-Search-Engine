@@ -4,6 +4,7 @@ typedef struct word{
     char* key_word;
 }word;
 
+//structs for entry list
 typedef struct Entry{
     char** payload;
     word* this_word;
@@ -33,9 +34,6 @@ enum error_code { SUCCESS = 0, ERROR = 1, NULL_POINTER = 2};
 enum match_type { EDIT_DIST = 1, HUMMING_DIST = 2};
 
 
-//Entry* create_entry();
-
-//enum error_code create_entry(const word* w, entry** e);
 void free_word(word* w);
 enum error_code create_entry(const word* w, entry* e);
 enum error_code destroy_entry(entry* e);
@@ -53,8 +51,6 @@ int min3(int x, int y, int z);
 entry_list read_document(int* number);
 int edit_Dist(char* str1, char* str2, int len1, int len2);
 int humming_distance(char* str1, char* str2, int m,int n);
-
-
 enum error_code build_entry_index_sort(const entry_list* el, enum match_type type, bk_index* ix);
 enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result);
 void print_bk_tree(bk_index ix,int pos);
