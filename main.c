@@ -22,8 +22,16 @@ int main(void){
     //read and store all queries
     char ch;
 	unsigned int query_id;
-    int fres ;
+    int fres;
 
+    //used to deduplicate edit distance queries
+    //each length has its own avl tree
+    avl_tree* avl_trees = malloc(sizeof(avl_tree)* 29);
+    for(int i = 0; i <=28 ; i++){
+        avl_trees[i] = NULL;
+    }
+
+    //start processing queries
     while(1){
         fres = fscanf(fp, "%c %u ", &ch, &query_id);
         if(fres == EOF){
@@ -39,7 +47,13 @@ int main(void){
 				exit(-1);
 			}
 
-            ErrorCode err = StartQuery(query_id, temp, (MatchType)match_type, match_dist);
+            //process files with match_type == 2
+            if(match_type == 2){
+                //ErrorCode err = StartQuery(query_id, temp, (MatchType)match_type, match_dist);
+                //deduplicate query words, insert them into the list
+                deduplicate_edit_distance(avl_trees, temp);
+                exit(-1);
+            }
         }else{
             break;
         }
@@ -59,7 +73,7 @@ int main(void){
             printf("Corrupted Test File at Read Documents.\n");
 			exit(-1);
         }
-        ErrorCode err = MatchDocument(doc_id,temp);
+        //ErrorCode err = MatchDocument(doc_id,temp);
         printf("%s",temp);
         fres = fscanf(fp, "%c %u ", &ch, &doc_id);
     }
@@ -67,6 +81,10 @@ int main(void){
     //do necessary destructions
     DestroyIndex();
     fclose(fp);
+    for(int i = 0; i <=28 ; i++){
+        free(avl_trees[i]);
+    }
+    free(avl_trees);
     printf("\n\nProgram exiting\n");
     return 0;
 }
@@ -102,3 +120,4 @@ int main(void){
     printf("first:%s\n",(*next)->this_word->key_word);
     print_list(my_entry_list);
     destroy_entry_list(&my_entry_list);*/
+

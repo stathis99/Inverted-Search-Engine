@@ -125,3 +125,14 @@ ErrorCode StartDocument(Doc_ID doc_id, const char* doc_str);
 ErrorCode InitializeIndex();
 ErrorCode DestroyIndex();
 ErrorCode StartQuery(Query_id query_id, const char* query_str, MatchType match_type, unsigned int match_dist);
+
+typedef struct {
+    struct AVL_tree* right;
+    struct AVL_tree* left;
+    word* key_word;
+    int height;
+}AVL_tree;
+typedef AVL_tree* avl_tree;
+
+//avl tree functions
+void deduplicate_edit_distance(avl_tree* avl_trees, const char* temp);

@@ -272,3 +272,30 @@ void print_query_list(){
 ErrorCode MatchDocument(Doc_ID doc_id, const char* doc_str){
 
 }
+
+
+//avl tree functions
+void deduplicate_edit_distance(avl_tree* avl_trees, const char* temp){
+    char* read_word;
+    char* temp_temp = (char*)temp; 
+    read_word = strtok(temp_temp, " ");
+    while(read_word != NULL){
+        printf("I read the word %s of length %ld \n", read_word,strlen(read_word));
+
+
+        //process this word
+        //
+        if(avl_trees[strlen(read_word)-1] == NULL){
+            printf("\n\nIt's first word of its length. Allocate\n");
+        }else{
+            //search
+            
+            //not found? =>
+            //insert in avl & in entry_list
+        }
+
+        //processing of current word ended, move on to the next one
+        read_word = strtok(NULL, " ");
+    }
+
+}
