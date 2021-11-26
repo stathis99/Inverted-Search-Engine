@@ -605,3 +605,24 @@ enum error_code build_entry_index(const entry_list* el, enum match_type type, bk
 
     return SUCCESS;
 }
+
+void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist, int type, Hash_table** hash_table)
+{
+    char* read_word;
+    char* temp_temp = (char*)temp; 
+    read_word = strtok(temp_temp, " ");
+    while(read_word != NULL){
+        int len = strlen(read_word);
+        printf("%s %d %d %d \n",read_word ,queryId, dist, type );
+
+        if(hash_tables[len-1] == NULL){ //initialize hashtable 
+            hash_table
+        }
+   
+
+
+        //processing of current word ended, move on to the next one
+        read_word = strtok(NULL, " ");
+    }
+
+}
