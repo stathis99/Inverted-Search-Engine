@@ -195,92 +195,14 @@ int humming_distance(char* str1, char* str2, int m,int n){
  }
 
 //creates a bk tree node
-void bk_create_node(bk_index* ix,word* entry_word,int weight){
+bk_index bk_create_node(bk_index* ix,word* entry_word,int weight){
 
         (*ix) = malloc(sizeof(Index));
         (*ix)->weight = weight;
         (*ix)->this_word = entry_word;
         (*ix)->next = NULL;
         (*ix)-> child = NULL;
-
-}
-
-int bk_add_node_sort(bk_index* ix,word* entry_word,enum match_type type){
-
-    bk_index temp_child  = (*ix)->child;
-    bk_index previous_child = NULL;
-    int dist;
-    if(type == EDIT_DIST){
-        dist = edit_dist(entry_word->key_word,(*ix)->this_word->key_word,strlen(entry_word->key_word),strlen((*ix)->this_word->key_word));
-    }else{
-        dist = humming_distance(entry_word->key_word,(*ix)->this_word->key_word,strlen(entry_word->key_word),strlen((*ix)->this_word->key_word));
-    }
-    //if ix doesnt have children create a node and set it as his  child
-    if(temp_child == NULL){
-
-        bk_create_node(&(*ix)->child, entry_word, dist);
-        return 1; 
-
-    }else{
-
-        //for every child of ix 
-        int child_distance = -1; 
-        while(temp_child != NULL){
-
-            //if exists child with same dist go to this child , child
-            if(temp_child->weight == dist){
-                bk_add_node_sort(&temp_child, entry_word, type);
-                return 1;
-            }
-            if(dist < temp_child->weight){
-                if(temp_child == (*ix)->child){     //replaces previous child
-                    bk_index new_index = NULL;
-                    bk_create_node(&new_index,entry_word,dist);
-                    (*ix)->child = new_index;
-                    new_index->next = temp_child;
-                    return 1;
-                }else{                              //new node is between 2 existing ones, add it in the middle
-                    bk_index new_index = NULL;
-                    bk_create_node(&new_index,entry_word,dist);
-                    bk_index temp_next = previous_child->next;
-                    previous_child->next = new_index;
-                    new_index->next = temp_child;
-                    return 1;
-                }
-            }
-            //if we wave seen all ix children and there is no child with same distance
-            if(temp_child->next == NULL){
-                //add new node at the end of children
-
-                //modify here to add with increasing distance
-                bk_create_node(&(temp_child->next),entry_word,dist);
-                return 1;
-            }
-            previous_child = temp_child;
-            temp_child = temp_child -> next;
-        }
-    }
-    return 1;
-}
-
-enum error_code build_entry_index_sort(const entry_list* el, enum match_type type, bk_index* ix){
-    if((*el)->first_node == NULL){
-        return NULL_POINTER;
-    }
-    entry temp_entry = (*el)->first_node;
-    //create the root of the tree
-    if((*ix) == NULL){
-        bk_create_node(ix,temp_entry->this_word,0);
-    }
-
-    //for every word in the list add it to the tree
-    temp_entry = temp_entry->next;
-    while(temp_entry != NULL){
-        bk_add_node(ix,temp_entry->this_word,type);
-        temp_entry = temp_entry->next;
-    }
-
-    return SUCCESS;
+        return *ix;
 }
 
 enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result){
@@ -549,7 +471,7 @@ void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold){
     }
 }
 
-int bk_add_node(bk_index* ix,word* entry_word,enum match_type type){
+int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* node){
     bk_index temp_child  = (*ix)->child;
     int dist;
 
@@ -561,7 +483,7 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type){
     //if ix doesnt have children create a node and set it as his  child
     if(temp_child == NULL){
 
-        bk_create_node(&(*ix)->child, entry_word, dist);
+        *node = bk_create_node(&(*ix)->child, entry_word, dist);
         return 1; 
 
     }else{
@@ -571,13 +493,13 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type){
 
             //if exists child with same dist go to this child , child
             if(temp_child->weight == dist){
-                bk_add_node(&temp_child ,entry_word,type);
+                bk_add_node(&temp_child ,entry_word,type, node);
                 return 1;
             }
             //if we wave seen all ix children and there is no child with same distance
             if(temp_child->next == NULL){
                 //add new node at the end of children
-                bk_create_node(&(temp_child->next),entry_word,dist);
+                *node = bk_create_node(&(temp_child->next),entry_word,dist);
                 return 1;
             }
             temp_child = temp_child -> next;
@@ -586,28 +508,7 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type){
     return 1;
 }
 
-enum error_code build_entry_index(const entry_list* el, enum match_type type, bk_index* ix){
-    if((*el)->first_node == NULL){
-        return NULL_POINTER;
-    }
-    entry temp_entry = (*el)->first_node;
-    //create the root of the tree
-    if((*ix) == NULL){
-        bk_create_node(ix,temp_entry->this_word,0);
-    }
-
-    //for every word in the list add it to the tree
-    temp_entry = temp_entry->next;
-    while(temp_entry != NULL){
-        bk_add_node(ix,temp_entry->this_word,type);
-        temp_entry = temp_entry->next;
-    }
-
-    return SUCCESS;
-}
-
-void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist, int type, Hash_table** hash_table)
-{
+void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist, int type, Hash_table** hash_table, bk_index* ix){
     char* read_word;
     char* temp_temp = (char*)temp; 
     read_word = strtok(temp_temp, " ");
@@ -615,8 +516,93 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
         int len = strlen(read_word);
         printf("%s %d %d %d \n",read_word ,queryId, dist, type );
 
-        if(hash_tables[len-1] == NULL){ //initialize hashtable 
-            hash_table
+        int word_hash_value = hash(read_word)%10;
+        printf("Word %s hashes to %d\n",read_word,word_hash_value);
+        if(hash_table[len-1] == NULL){ //initialize hashtable 
+            hash_table[len-1] = malloc(sizeof(Hash_table));
+            hash_table[len-1]->hash_buckets = malloc(sizeof(Hash_Bucket*)*10);
+            for(int i=0 ; i<= 9 ;i++){
+                hash_table[len-1]->hash_buckets[i] = NULL;
+            }
+            //hash word to find bucket
+            hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
+
+            if((*ix) == NULL){                  //bk root hasnt been initialized
+                //create struct word
+                //unnecessary, just fix struct word
+                word* my_word1 = malloc(sizeof(word));
+                my_word1->key_word = malloc(strlen(read_word)+1);
+                strcpy(my_word1->key_word,read_word);
+
+
+
+
+                bk_create_node(ix,my_word1,0);
+                hash_table[len-1]->hash_buckets[word_hash_value]->node = *ix;
+                hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
+            }else{
+                //unnecessary, just fix struct word
+                word* my_word1 = malloc(sizeof(word));
+                my_word1->key_word = malloc(strlen(read_word)+1);
+                strcpy(my_word1->key_word,read_word);
+
+                bk_index node = NULL;
+                bk_add_node(ix, my_word1, 1, &node);
+                hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
+                hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
+            }
+            
+
+        }else{              //this hash table has been initialized
+            //search if it exists in any of the buckets, starting from the first
+            Hash_Bucket* current = hash_table[len-1]->hash_buckets[word_hash_value];
+            if(current == NULL){
+                //first word for this bucket, create the bucket
+                current = malloc(sizeof(Hash_Bucket));
+
+                //unnecessary, just fix struct word
+                word* my_word1 = malloc(sizeof(word));
+                my_word1->key_word = malloc(strlen(read_word)+1);
+                strcpy(my_word1->key_word,read_word);
+
+                bk_index node = NULL;
+                bk_add_node(ix, my_word1, 1, &node);
+                current->node = node;
+                current->next = NULL;
+            }else{
+                int found = -1;
+                while (current != NULL){
+                    if(strcmp(current->node->this_word->key_word,read_word) == 0){       //does the word exist
+                        found = 1;
+                        //exists it should be added to payload *AND MAYBE THRESHOLD FOR THIS QUERY?* and we are done
+                        printf("I found word %s again\n",read_word);
+                        break;
+                    }
+                    current = current->next;
+                }
+                if(found == -1){                // it was not found, we shall add it and add it to the list of buckets
+                    //unnecessary, just fix struct word
+                    word* my_word1 = malloc(sizeof(word));
+                    my_word1->key_word = malloc(strlen(read_word)+1);
+                    strcpy(my_word1->key_word,read_word);
+
+
+                    bk_index node = NULL;
+                    bk_add_node(ix, my_word1, 1, &node);
+                    //create this hash_bucket to store data
+                    Hash_Bucket* new_bucket = malloc(sizeof(Hash_Bucket));
+                    new_bucket->node = node;
+                    new_bucket->next = NULL;
+
+                    //append it to the head
+                    Hash_Bucket* previous_first = hash_table[len-1]->hash_buckets[word_hash_value];
+                    //first bucket it now the new one
+                    hash_table[len-1]->hash_buckets[word_hash_value] = new_bucket;
+                    new_bucket->next = previous_first;
+
+
+                }
+            }
         }
    
 
@@ -625,4 +611,36 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
         read_word = strtok(NULL, " ");
     }
 
+}
+
+unsigned long hash(unsigned char *str){
+    unsigned long hash = 5381;
+    int c;
+
+    while (c = *str++)
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+    return hash;
+}
+
+void delete_hash_tables(Hash_table** hash_tables){
+    for(int i=0; i <= 28; i++){
+        //if this hash table has been allocated, free it; else move on
+        if(hash_tables[i] != NULL){
+            for(int j=0; j <= 9; j++){
+                Hash_Bucket* current = hash_tables[i]->hash_buckets[j];
+                if(current != NULL){
+                Hash_Bucket* temp ; 
+                /*while(current != NULL){        //if there exists at least one bucket, free it and every next it has
+                    temp = current;
+                    current = current->next;
+                    free(temp); 
+                }  */
+                free(hash_tables[i]->hash_buckets[j]);
+                }
+            }
+            free(hash_tables[i]);
+        }
+    }
+    free(hash_tables);
 }

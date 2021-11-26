@@ -16,15 +16,14 @@ int main(int argc, char* argv[]){
 
  //read and store all queries
     char ch;
-	 unsigned int query_id;
+	unsigned int query_id;
     int fres;
    
-   Hash_table** hash_tables = malloc(sizeof(Hash_table*)* 29);
-      for(int i = 0; i <=28 ; i++){
-            hash_tables[i] = NULL;
-   }
-
-
+    bk_index ix = NULL;
+    Hash_table** hash_tables = malloc(sizeof(Hash_table*)* 29);
+    for(int i = 0; i <=28 ; i++){
+       hash_tables[i] = NULL;
+    } 
 
     //start processing queries
     while(1){
@@ -45,7 +44,7 @@ int main(int argc, char* argv[]){
             //process files with match_type == 2
             if(match_type == 2){
                 //deduplicate query words, insert them into the list
-                deduplicate_edit_distance(temp, query_id, match_dist, match_type, hash_tables);
+                deduplicate_edit_distance(temp, query_id, match_dist, match_type, hash_tables, &ix);
             }
         }else{
             break;
@@ -53,8 +52,17 @@ int main(int argc, char* argv[]){
 		
     }
 
-
-
+    delete_hash_tables(hash_tables);
+    destroy_entry_index(&ix);
+    /*for(int i=0; i<=28 ; i++){
+        for(int j=0; j <=9 ; j++){
+            if(hash_tables[i] != NULL){
+                free(hash_tables[i]->hash_buckets[j]);
+            }
+        }
+        free(hash_tables[i]);
+    }
+    free(hash_tables);*/
 
    // if(argc != 3){
    //    printf("Invalid number of arguments given\n");

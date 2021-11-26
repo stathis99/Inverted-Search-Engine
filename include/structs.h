@@ -55,8 +55,7 @@ enum error_code build_entry_index_sort(const entry_list* el, enum match_type typ
 enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result);
 void print_bk_tree(bk_index ix,int pos);
 enum error_code destroy_entry_index(bk_index* ix);
-void bk_create_node(bk_index* ix,word* entry_word,int weight);
-int bk_add_node_sort(bk_index* ix,word* entry_word,enum match_type type);
+bk_index bk_create_node(bk_index* ix,word* entry_word,int weight);
 entry_list read_queries(int* number,FILE* fp);
 int count_documents(FILE* fp);
 entry_list* read_documents(int* number,FILE* fp,int number_of_documents);
@@ -64,7 +63,7 @@ void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold);
 
 
 //new functions to create BK without sorting inner nodes
-int bk_add_node(bk_index* ix,word* entry_word,enum match_type type);
+int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* node);
 enum error_code build_entry_index(const entry_list* el, enum match_type type, bk_index* ix);
 
 
@@ -123,18 +122,23 @@ typedef enum{
 #define MAX_QUERY_LENGTH ((MAX_WORD_LENGTH+1)*MAX_QUERY_WORDS)
 
 typedef struct Hash_table{
-    Hash_Bucket* hash_bucket[10];
-} Hash_table;
+    struct Hash_Bucket** hash_buckets;
+}Hash_table;
 
 typedef struct Hash_Bucket{
-    Hash_Bucket* next;
+    struct Hash_Bucket* next;
     bk_index node;
-} Hash_Bucket;
+}Hash_Bucket;
 
 
-void deduplicate_edit_distance(const char* temp, unsigned int , int , int, Hash_table** hash_table);
+void deduplicate_edit_distance(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* ix);
+unsigned long hash(unsigned char *str);
+void delete_hash_tables(Hash_table**);
 
-
+typedef struct Payload{
+    unsigned int queryId;
+    int threshold;
+}Payload;
 
 
 

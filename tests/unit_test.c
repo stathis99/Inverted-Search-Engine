@@ -87,7 +87,7 @@ void test_bk_tree_empty(void){
 	entry_list my_entry_list ;
 	create_entry_list(&my_entry_list);
 	bk_index ix = NULL;
-	enum error_code result = build_entry_index(&my_entry_list,EDIT_DIST,&ix);
+	//enum error_code result = build_entry_index(&my_entry_list,EDIT_DIST,&ix);
 	TEST_CHECK(ix == NULL);
 	destroy_entry_list(&my_entry_list);
 }
@@ -109,7 +109,7 @@ void test_bk_tree(void){
    	add_entry(&my_entry_list,&my_entry);
 	
 	bk_index ix = NULL;
-	enum error_code result = build_entry_index(&my_entry_list,EDIT_DIST,&ix);
+	//enum error_code result = build_entry_index(&my_entry_list,EDIT_DIST,&ix);
 	TEST_CHECK(ix != NULL);
 
 	destroy_entry_index(&ix);
