@@ -25,6 +25,11 @@ int main(int argc, char* argv[]){
        hash_tables[i] = NULL;
     } 
 
+    int bloom_filter[100];
+    for(int i = 0; i<99; i++){
+        bloom_filter[i] = 0;
+    }
+
     //start processing queries
     while(1){
         fres = fscanf(fp, "%c %u ", &ch, &query_id);
@@ -44,7 +49,9 @@ int main(int argc, char* argv[]){
             //process files with match_type == 2
             if(match_type == 2){
                 //deduplicate query words, insert them into the list
-                deduplicate_edit_distance(temp, query_id, match_dist, match_type, hash_tables, &ix);
+                //deduplicate_edit_distance(temp, query_id, match_dist, match_type, hash_tables, &ix);
+            }else if(match_type == 0){
+                deduplicate_exact_matching(temp, query_id, match_dist, match_type, hash_tables, &ix, bloom_filter);
             }
         }else{
             break;
@@ -52,10 +59,14 @@ int main(int argc, char* argv[]){
 		
     }
     print_hash_tables(hash_tables);
-    print_bk_tree(ix,0);
+    //print_bk_tree(ix,0);
     delete_hash_tables(hash_tables);
     destroy_entry_index(&ix);
     fclose(fp);
+
+
+
+
     /*for(int i=0; i<=28 ; i++){
         for(int j=0; j <=9 ; j++){
             if(hash_tables[i] != NULL){
