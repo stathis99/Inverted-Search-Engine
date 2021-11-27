@@ -604,7 +604,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
 
                     //append it to the head
                     Hash_Bucket* previous_first = hash_table[len-1]->hash_buckets[word_hash_value];
-                    //first bucket it now the new one
+                    //first bucket is now the new one
                     hash_table[len-1]->hash_buckets[word_hash_value] = new_bucket;
                     new_bucket->next = previous_first;
 
