@@ -236,6 +236,9 @@ enum error_code destroy_entry_index(bk_index* ix){
     }
 
     bk_index temp_child  = (*ix)->child;
+    //temporary because of unnecessary word* struct
+    free((*ix)->this_word->key_word);
+    free((*ix)->this_word);
     free(*ix);
     bk_index temp_child_next;
     while(temp_child != NULL){
@@ -515,12 +518,16 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
     while(read_word != NULL){
         int len = strlen(read_word);
         printf("%s %d %d %d \n",read_word ,queryId, dist, type );
-
+        
         int word_hash_value = hash(read_word)%10;
         printf("Word %s hashes to %d\n",read_word,word_hash_value);
-        if(hash_table[len-1] == NULL){ //initialize hashtable 
+        if(hash_table[len-1] == NULL){
+
+            //initialize hashtable 
             hash_table[len-1] = malloc(sizeof(Hash_table));
             hash_table[len-1]->hash_buckets = malloc(sizeof(Hash_Bucket*)*10);
+            
+            //initialize hash buckets
             for(int i=0 ; i<= 9 ;i++){
                 hash_table[len-1]->hash_buckets[i] = NULL;
             }
@@ -554,11 +561,12 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
             
 
         }else{              //this hash table has been initialized
+        
             //search if it exists in any of the buckets, starting from the first
             Hash_Bucket* current = hash_table[len-1]->hash_buckets[word_hash_value];
-            if(current == NULL){
+            if(hash_table[len-1]->hash_buckets[word_hash_value] == NULL){
                 //first word for this bucket, create the bucket
-                current = malloc(sizeof(Hash_Bucket));
+                hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
                 //unnecessary, just fix struct word
                 word* my_word1 = malloc(sizeof(word));
@@ -567,8 +575,8 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
 
                 bk_index node = NULL;
                 bk_add_node(ix, my_word1, 1, &node);
-                current->node = node;
-                current->next = NULL;
+                hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
+                hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
                 int found = -1;
                 while (current != NULL){
@@ -623,6 +631,23 @@ unsigned long hash(unsigned char *str){
     return hash;
 }
 
+void print_hash_tables(Hash_table** hash_table){
+    for(int i=0 ; i <= 28; i++){
+        if(hash_table[i] != NULL){
+            for(int j=0; j <= 9; j++){
+                Hash_Bucket* current = hash_table[i]->hash_buckets[j];
+                while(current != NULL){
+                    printf("Printing length %d hash %d:\n",i+1,j);
+                    //access the bk node that this bucket points to
+                    printf("%s     ->",current->node->this_word->key_word);
+                    current = current->next;
+                }printf("\n");
+            }
+            printf("Length %d finished\n\n",i+1);
+        }
+    }
+}
+
 void delete_hash_tables(Hash_table** hash_tables){
     for(int i=0; i <= 28; i++){
         //if this hash table has been allocated, free it; else move on
@@ -630,13 +655,12 @@ void delete_hash_tables(Hash_table** hash_tables){
             for(int j=0; j <= 9; j++){
                 Hash_Bucket* current = hash_tables[i]->hash_buckets[j];
                 if(current != NULL){
-                Hash_Bucket* temp ; 
-                /*while(current != NULL){        //if there exists at least one bucket, free it and every next it has
-                    temp = current;
-                    current = current->next;
-                    free(temp); 
-                }  */
-                free(hash_tables[i]->hash_buckets[j]);
+                    Hash_Bucket* temp ; 
+                    while(current != NULL){        //if there exists at least one bucket, free it and every next it has
+                        temp = current;
+                        current = current->next;
+                        free(temp); 
+                    }
                 }
             }
             free(hash_tables[i]);

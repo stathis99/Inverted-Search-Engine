@@ -15,7 +15,7 @@ CC	= gcc
 all: $(OBJECTS0) $(OBJECTS1)
 	$(CC) -g $(OBJECTS0) -o $(OUT)
 	$(CC) -g $(OBJECTS1) -o $(OUTTEST)
-	make clean
+	rm functions.o main.o $(INCLUDE)/unit_test.o
 	
 project1: main.o
 	$(CC) main.o -o $(OUT)

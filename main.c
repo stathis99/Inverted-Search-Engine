@@ -51,9 +51,11 @@ int main(int argc, char* argv[]){
         }
 		
     }
-
+    print_hash_tables(hash_tables);
+    print_bk_tree(ix,0);
     delete_hash_tables(hash_tables);
     destroy_entry_index(&ix);
+    fclose(fp);
     /*for(int i=0; i<=28 ; i++){
         for(int j=0; j <=9 ; j++){
             if(hash_tables[i] != NULL){

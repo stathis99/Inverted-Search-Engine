@@ -134,6 +134,7 @@ typedef struct Hash_Bucket{
 void deduplicate_edit_distance(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* ix);
 unsigned long hash(unsigned char *str);
 void delete_hash_tables(Hash_table**);
+void print_hash_tables(Hash_table** hash_table);
 
 typedef struct Payload{
     unsigned int queryId;
