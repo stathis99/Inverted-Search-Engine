@@ -142,4 +142,7 @@ typedef struct Payload{
 }Payload;
 
 
+void deduplicate_exact_matching(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* ix, int* bloom_filter);
+
+
 

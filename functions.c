@@ -668,3 +668,152 @@ void delete_hash_tables(Hash_table** hash_tables){
     }
     free(hash_tables);
 }
+
+unsigned int djb2(const void *_str) {
+	const char *str = _str;
+	unsigned int hash = 5381;
+	char c;
+	while ((c = *str++)) {
+		hash = ((hash << 5) + hash) + c;
+	}
+	return hash;
+}
+
+unsigned int jenkins(const void *_str) {
+	const char *key = _str;
+	unsigned int hash, i;
+	while (*key) {
+		hash += *key;
+		hash += (hash << 10);
+		hash ^= (hash >> 6);
+		key++;
+	}
+	hash += (hash << 3);
+	hash ^= (hash >> 11);
+	hash += (hash << 15);
+	return hash;
+}
+
+
+
+void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist, int type, Hash_table** hash_table, bk_index* ix, int* bloom_filter){
+    for(int i = 0; i<99; i++){
+    printf("%d",bloom_filter[i])  ;
+    }    
+    
+    char* read_word;
+    char* temp_temp = (char*)temp; 
+    read_word = strtok(temp_temp, " ");
+    while(read_word != NULL){
+        int len = strlen(read_word);
+        //printf("%s %d %d %d \n",read_word ,queryId, dist, type );
+        
+
+
+        int word_hash_value = jenkins(read_word)%100;
+        int word_hash_value2 = djb2(read_word)%100;
+
+        //printf("Word %s hashes to j:%d dj:%d\n",read_word,word_hash_value,word_hash_value2);
+        bloom_filter[word_hash_value] = 1;
+        bloom_filter[word_hash_value2] = 1;
+        
+
+        // if(hash_table[len-1] == NULL){
+
+        //     //initialize hashtable 
+        //     hash_table[len-1] = malloc(sizeof(Hash_table));
+        //     hash_table[len-1]->hash_buckets = malloc(sizeof(Hash_Bucket*)*10);
+            
+        //     //initialize hash buckets
+        //     for(int i=0 ; i<= 9 ;i++){
+        //         hash_table[len-1]->hash_buckets[i] = NULL;
+        //     }
+        //     //hash word to find bucket
+        //     hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
+
+        //     if((*ix) == NULL){                  //bk root hasnt been initialized
+        //         //create struct word
+        //         //unnecessary, just fix struct word
+        //         word* my_word1 = malloc(sizeof(word));
+        //         my_word1->key_word = malloc(strlen(read_word)+1);
+        //         strcpy(my_word1->key_word,read_word);
+
+
+
+
+        //         bk_create_node(ix,my_word1,0);
+        //         hash_table[len-1]->hash_buckets[word_hash_value]->node = *ix;
+        //         hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
+        //     }else{
+        //         //unnecessary, just fix struct word
+        //         word* my_word1 = malloc(sizeof(word));
+        //         my_word1->key_word = malloc(strlen(read_word)+1);
+        //         strcpy(my_word1->key_word,read_word);
+
+        //         bk_index node = NULL;
+        //         bk_add_node(ix, my_word1, 1, &node);
+        //         hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
+        //         hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
+        //     }
+            
+
+        // }else{              //this hash table has been initialized
+        
+        //     //search if it exists in any of the buckets, starting from the first
+        //     Hash_Bucket* current = hash_table[len-1]->hash_buckets[word_hash_value];
+        //     if(hash_table[len-1]->hash_buckets[word_hash_value] == NULL){
+        //         //first word for this bucket, create the bucket
+        //         hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
+
+        //         //unnecessary, just fix struct word
+        //         word* my_word1 = malloc(sizeof(word));
+        //         my_word1->key_word = malloc(strlen(read_word)+1);
+        //         strcpy(my_word1->key_word,read_word);
+
+        //         bk_index node = NULL;
+        //         bk_add_node(ix, my_word1, 1, &node);
+        //         hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
+        //         hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
+        //     }else{
+        //         int found = -1;
+        //         while (current != NULL){
+        //             if(strcmp(current->node->this_word->key_word,read_word) == 0){       //does the word exist
+        //                 found = 1;
+        //                 //exists it should be added to payload *AND MAYBE THRESHOLD FOR THIS QUERY?* and we are done
+        //                 printf("I found word %s again\n",read_word);
+        //                 break;
+        //             }
+        //             current = current->next;
+        //         }
+        //         if(found == -1){                // it was not found, we shall add it and add it to the list of buckets
+        //             //unnecessary, just fix struct word
+        //             word* my_word1 = malloc(sizeof(word));
+        //             my_word1->key_word = malloc(strlen(read_word)+1);
+        //             strcpy(my_word1->key_word,read_word);
+
+
+        //             bk_index node = NULL;
+        //             bk_add_node(ix, my_word1, 1, &node);
+        //             //create this hash_bucket to store data
+        //             Hash_Bucket* new_bucket = malloc(sizeof(Hash_Bucket));
+        //             new_bucket->node = node;
+        //             new_bucket->next = NULL;
+
+        //             //append it to the head
+        //             Hash_Bucket* previous_first = hash_table[len-1]->hash_buckets[word_hash_value];
+        //             //first bucket it now the new one
+        //             hash_table[len-1]->hash_buckets[word_hash_value] = new_bucket;
+        //             new_bucket->next = previous_first;
+
+
+        //         }
+        //     }
+        // }
+   
+
+
+        //processing of current word ended, move on to the next one
+        read_word = strtok(NULL, " ");
+    }
+
+}
