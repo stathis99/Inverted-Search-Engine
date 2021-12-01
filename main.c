@@ -8,7 +8,7 @@ char temp[MAX_DOC_LENGTH];
 
 int main(int argc, char* argv[]){
 
-   FILE* fp = fopen("./files/queries.txt","r");
+   FILE* fp = fopen("./files/queries_1.txt","r");
    if(fp == NULL){
       printf("Couldnt open file.\n");
       exit(-1);
@@ -23,6 +23,16 @@ int main(int argc, char* argv[]){
     Hash_table** hash_tables = malloc(sizeof(Hash_table*)* 29);
     for(int i = 0; i <=28 ; i++){
        hash_tables[i] = NULL;
+    } 
+
+    bk_index* humming_root_table = malloc(sizeof(bk_index)*29);
+    for(int i = 0; i <=28 ; i++){
+       humming_root_table[i] = NULL;
+    }  
+
+    Hash_table_exact** hash_tables_exact = malloc(sizeof(Hash_table_exact*)* 29);
+    for(int i = 0; i <=28 ; i++){
+       hash_tables_exact[i] = NULL;
     } 
 
     int bloom_filter[100];
@@ -51,13 +61,19 @@ int main(int argc, char* argv[]){
                 //deduplicate query words, insert them into the list
                 //deduplicate_edit_distance(temp, query_id, match_dist, match_type, hash_tables, &ix);
             }else if(match_type == 0){
-                deduplicate_exact_matching(temp, query_id, match_dist, match_type, hash_tables, &ix, bloom_filter);
+                deduplicate_exact_matching(temp, query_id, match_dist, match_type, hash_tables_exact, bloom_filter);
+            }else if(match_type == 1){
+                //deduplicate_humming(temp, query_id, match_dist, match_type, hash_tables, humming_root_table);
             }
         }else{
             break;
         }
 		
     }
+    for(int i=0; i<=28;i++){
+        print_bk_tree(humming_root_table[i],0);
+    }
+
     print_hash_tables(hash_tables);
     //print_bk_tree(ix,0);
     delete_hash_tables(hash_tables);
