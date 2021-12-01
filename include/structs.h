@@ -50,7 +50,7 @@ int min2(int x, int y);
 int min3(int x, int y, int z);
 entry_list read_document(int* number);
 int edit_Dist(char* str1, char* str2, int len1, int len2);
-int humming_distance(char* str1, char* str2, int m,int n);
+int humming_distance(char* str1, char* str2, int len);
 enum error_code build_entry_index_sort(const entry_list* el, enum match_type type, bk_index* ix);
 enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result);
 void print_bk_tree(bk_index ix,int pos);
@@ -123,6 +123,8 @@ typedef enum{
 
 typedef struct Hash_table{
     struct Hash_Bucket** hash_buckets;
+    //struct Hash_Bucket* hash_buckets[10];
+
 }Hash_table;
 
 typedef struct Hash_Bucket{
@@ -142,7 +144,12 @@ typedef struct Payload{
 }Payload;
 
 
-void deduplicate_exact_matching(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* ix, int* bloom_filter);
+void deduplicate_exact_matching(const char* temp, unsigned int , int , int, Hash_table_exact** hash_table_exact, int* bloom_filter);
+void deduplicate_humming(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* humming_root_table);
 
 
+typedef struct Hash_table_exact{
+    entry hash_buckets[10];
+    //struct Hash_Bucket* hash_buckets[10];
 
+}Hash_table_exact;
