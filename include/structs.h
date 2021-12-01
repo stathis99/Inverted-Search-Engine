@@ -122,9 +122,8 @@ typedef enum{
 #define MAX_QUERY_LENGTH ((MAX_WORD_LENGTH+1)*MAX_QUERY_WORDS)
 
 typedef struct Hash_table{
-    struct Hash_Bucket** hash_buckets;
-    //struct Hash_Bucket* hash_buckets[10];
-
+    //struct Hash_Bucket** hash_buckets;
+    struct Hash_Bucket* hash_buckets[10];
 }Hash_table;
 
 typedef struct Hash_Bucket{
@@ -143,13 +142,11 @@ typedef struct Payload{
     int threshold;
 }Payload;
 
-
-void deduplicate_exact_matching(const char* temp, unsigned int , int , int, Hash_table_exact** hash_table_exact, int* bloom_filter);
-void deduplicate_humming(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* humming_root_table);
-
-
 typedef struct Hash_table_exact{
     entry hash_buckets[10];
-    //struct Hash_Bucket* hash_buckets[10];
-
 }Hash_table_exact;
+
+void deduplicate_exact_matching(const char* temp, unsigned int , int , int, Hash_table_exact** hash_table_exact, int bloom_filter[]);
+void deduplicate_humming(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* humming_root_table);
+enum error_code add_entry_no_list(entry first, const entry new_entry);
+void print_hash_table_exact(Hash_table_exact** hash_table_exact);

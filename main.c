@@ -8,7 +8,7 @@ char temp[MAX_DOC_LENGTH];
 
 int main(int argc, char* argv[]){
 
-   FILE* fp = fopen("./files/queries_1.txt","r");
+   FILE* fp = fopen("./files/queries1.txt","r");
    if(fp == NULL){
       printf("Couldnt open file.\n");
       exit(-1);
@@ -70,7 +70,8 @@ int main(int argc, char* argv[]){
         }
 		
     }
-    for(int i=0; i<=28;i++){
+    print_hash_table_exact(hash_tables_exact);
+    /*for(int i=0; i<=28;i++){
         print_bk_tree(humming_root_table[i],0);
     }
 
@@ -78,7 +79,7 @@ int main(int argc, char* argv[]){
     //print_bk_tree(ix,0);
     delete_hash_tables(hash_tables);
     destroy_entry_index(&ix);
-    fclose(fp);
+    fclose(fp);*/
 
 
 
