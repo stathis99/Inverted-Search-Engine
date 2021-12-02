@@ -5,17 +5,16 @@ INCLUDE = ./tests
 
 HEADERS = structs.h
 SOURCES0 = main.c functions.c
-SOURCES1 = $(INCLUDE)/unit_test.c functions.c
+SOURCES1 = $(INCLUDE)/unit_test.c
 OBJECTS0 = main.o functions.o
-OBJECTS1 = $(INCLUDE)/unit_test.o functions.o
+OBJECTS1 = $(INCLUDE)/unit_test.o
 OUT		= project1
 OUTTEST = test
 CC	= gcc
 
 all: $(OBJECTS0) $(OBJECTS1)
 	$(CC) -g $(OBJECTS0) -o $(OUT)
-	$(CC) -g $(OBJECTS1) -o $(OUTTEST)
-	rm functions.o main.o $(INCLUDE)/unit_test.o
+	rm functions.o main.o
 	
 project1: main.o
 	$(CC) main.o -o $(OUT)

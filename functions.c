@@ -4,20 +4,18 @@
 
 
 //entry functions
-void free_word(word* my_word){
-    free(my_word->key_word);
-    free(my_word);
+void free_word(word* w){
+    free(w);
 }
-
 
 enum error_code create_entry(const word* w, entry* e){
     *e = malloc(sizeof(Entry));
 
     //duplicate the word
-    (*e)->this_word = malloc(sizeof(word));
-    (*e)->this_word->key_word = malloc(strlen(w->key_word)+1);
-    strcpy((*e)->this_word->key_word,w->key_word);
-
+    //is this needed?
+    // (*e)->this_word = malloc(strlen(w)+1);
+    // strcpy((*e)->this_word,w);
+    (*e)->this_word = (word*)w;
     (*e)->payload = NULL;
     (*e)->next = NULL;
     return SUCCESS;
@@ -29,9 +27,8 @@ enum error_code destroy_entry(entry* e){
     }
     //free((*e)->payload[0]);
     //free((*e)->payload);
-    free((*e)->this_word->key_word);
     free((*e)->this_word);
-
+    free(*e);
     return SUCCESS;
 }
 
@@ -114,7 +111,7 @@ void print_list(const entry_list el){
     }
     entry head = el->first_node;
     while(head != NULL){
-        printf("%s ",head->this_word->key_word);
+        printf("%s ",head->this_word);
         head = head-> next;
     }
 }
@@ -139,7 +136,7 @@ int min3(int x, int y, int z) {
 
 
 //distance functions
-int edit_dist(char* str1, char* str2, int len1, int len2){
+int edit_dist(const char* str1, const char* str2, int len1, int len2){
     // Create a table to store results of subproblems
     int cost[len1 + 1][len2 + 1];
   
@@ -175,7 +172,7 @@ int edit_dist(char* str1, char* str2, int len1, int len2){
     return cost[len1][len2];
 }
 
-int humming_distance(char* str1, char* str2, int len){
+int humming_distance(const char* str1, const char* str2, int len){
     
     //compare characters one by one
     int distance = 0;
@@ -198,7 +195,7 @@ int humming_distance(char* str1, char* str2, int len){
 
     bk_index temp_child  = ix->child;
     
-    printf("\n\n   %s:%d  %d \n\n",ix->this_word->key_word,ix->weight,pos);
+    printf("\n\n   %s:%d  %d \n\n",ix->this_word,ix->weight,pos);
 
     while(temp_child != NULL){
         print_bk_tree(temp_child,pos-1);
@@ -220,7 +217,7 @@ bk_index bk_create_node(bk_index* ix,word* entry_word,int weight){
 
 enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result){
     bk_index temp_child  = (*ix)->child;
-    int dist = edit_dist(w->key_word,(*ix)->this_word->key_word,strlen(w->key_word),strlen((*ix)->this_word->key_word));
+    int dist = edit_dist(w,(*ix)->this_word,strlen(w),strlen((*ix)->this_word));
     int min_dist = dist - threshold;
     int max_dist = dist + threshold;
 
@@ -250,7 +247,6 @@ enum error_code destroy_entry_index(bk_index* ix){
 
     bk_index temp_child  = (*ix)->child;
     //temporary because of unnecessary word* struct
-    free((*ix)->this_word->key_word);
     free((*ix)->this_word);
     free(*ix);
     bk_index temp_child_next;
@@ -264,209 +260,6 @@ enum error_code destroy_entry_index(bk_index* ix){
 
 }
 
-entry_list read_document(int* number){
-    int number_of_words = 0;
-    entry_list my_entry_list = NULL;
-    create_entry_list(&my_entry_list); 
-    FILE* fp = fopen("queries.txt","r");
-    if(fp == NULL){
-        return NULL;
-    }
-
-    char c;
-    char* query_word = NULL;
-    word* my_word = NULL;
-    int word_length = 0;
-    while((c = fgetc (fp)) != EOF){
-
-        if((c == ' ' || c == '\n') && (word_length > 0)){     //full word has been read. add letters to form the word
-            //store word
-            //move to next
-            query_word[word_length] = '\0';
-            if(number_of_words == 0){         //first word, initialize array
-                my_word = (word*)malloc(sizeof(word));
-                my_word->key_word = (char*)malloc(strlen(query_word)*sizeof(query_word));
-                strcpy(my_word->key_word,query_word);
-                entry word_entry = NULL;
-                create_entry(my_word,&word_entry);
-                add_entry(&my_entry_list,&word_entry);
-                free(query_word);
-                free_word(my_word);
-                number_of_words++;
-            }else{
-                int exists = 0;
-                //check that this word doesnt already exist in the array; deduplicate here
-                entry* temp = get_first(&my_entry_list);
-                entry temp_entry = *temp;
-                while(temp_entry != NULL){
-                    if(query_word != NULL && temp_entry->this_word->key_word != NULL){
-                       if(strcmp(temp_entry->this_word->key_word,query_word)==0){
-                           free(query_word);
-                           exists = 1;
-                           break;
-                       }
-                    }
-                    temp_entry = temp_entry->next;
-                }
-                if(exists == 0){
-                    //if it doesnt, append the array
-                    my_word = (word*)malloc(sizeof(word));
-                    my_word->key_word = (char*)malloc(strlen(query_word)*sizeof(query_word));
-                    strcpy(my_word->key_word,query_word);
-                    entry word_entry = NULL;
-                    create_entry(my_word,&word_entry);
-                    add_entry(&my_entry_list,&word_entry);
-                    free(query_word);
-                    free_word(my_word);
-                    number_of_words++;
-                }
-            }
-            word_length = 0;
-            query_word = NULL;
-            my_word = NULL;
-        }else{
-            word_length++;
-            char* temp_word;
-            if(query_word != NULL){
-                temp_word = (char*)realloc(query_word,(word_length+1)*sizeof(char));
-                if(temp_word == NULL){
-                    free(query_word);
-                    *number = 0;
-                    return NULL;
-                }
-                query_word = temp_word;
-            }else{
-                query_word = (char*)realloc(query_word,(word_length+1)*sizeof(char));
-            }
-            query_word[word_length-1] = c;
-        }
-    }
-    fclose(fp);
-    *number = number_of_words;
-    return my_entry_list;
-}
-
-entry_list read_queries(int* number,FILE* fp){       //max word length is 31
-    int number_of_words = 0;
-    entry_list my_entry_list = NULL;
-    create_entry_list(&my_entry_list); 
-    if(fp == NULL){
-        return NULL;
-    }
-
-    char read_word[31];
-    while(fscanf(fp," %31s",read_word) == 1){
-        if(strcmp(read_word,"$") == 0){      //end of queries
-            return my_entry_list;
-        }
-        //read word
-        //check if it already exists in list
-        entry* temp = get_first(&my_entry_list);
-        entry temp_entry = *temp;
-        int found = -1;
-        while(temp_entry != NULL){
-            if(strcmp(temp_entry->this_word->key_word,read_word)==0){
-                found = 1;
-                break;
-            }
-            temp_entry = temp_entry->next;
-        }
-        if(found == -1){
-            //create word
-            word* my_word = NULL;
-            my_word = (word*)malloc(sizeof(word));
-            my_word->key_word = (char*)malloc(strlen(read_word)*sizeof(read_word));
-            strcpy(my_word->key_word,read_word);
-
-            //create entry
-            entry word_entry = NULL;
-            create_entry(my_word,&word_entry);
-            free_word(my_word);
-            //add entry to list
-            add_entry(&my_entry_list,&word_entry);
-            number_of_words++;
-        }
-    }
-
-    return my_entry_list;
-}
-
-int count_documents(FILE* fp){
-    int number = 0;
-    char read_word[31];
-    while(fscanf(fp," %31s",read_word) == 1){
-        if(strcmp(read_word,"$") == 0){      //end of queries
-            number++;
-        }
-    }
-    return number;
-}
-
-entry_list* read_documents(int* number,FILE* fp,int number_of_documents){       //max word length is 31
-    
-    entry_list* document_entry_list_array = malloc(sizeof(entry_list)*number_of_documents);
-    int documents_read = 0;
-    if(fp == NULL){
-        return NULL;
-    }
-    char read_word[31];
-
-    //ignore all queries, get to first document
-    while(fscanf(fp," %31s",read_word) == 1){
-        if(strcmp(read_word,"$") == 0){      //end of queries
-            break;
-        }
-    }
-
-    entry_list document_entry_list = NULL;
-    create_entry_list(&document_entry_list); 
-
-    while(fscanf(fp," %31s",read_word) != EOF){
-        //read word
-        //check if it already exists in list
-        if(strcmp(read_word,"$") == 0){         //one full document has been read, move on to the next one
-            //store it and move on if needed
-            document_entry_list_array[documents_read] = document_entry_list;
-            documents_read++;
-            if(documents_read < number_of_documents){   //more documents to be read        //it is not the last one
-                document_entry_list = NULL;
-                create_entry_list(&document_entry_list);
-            }
-        }else{                                  //keep adding words to current document
-            entry* temp = get_first(&document_entry_list);
-            entry temp_entry = *temp;
-            int found = -1;
-            while(temp_entry != NULL){              //search for this word
-                if(strcmp(temp_entry->this_word->key_word,read_word) == 0){
-                    found = 1;
-                    break;
-                }
-                temp_entry = temp_entry->next;
-            }
-            if(found == -1){
-                //create word
-                word* my_word = NULL;
-                my_word = (word*)malloc(sizeof(word));
-                my_word->key_word = (char*)malloc(strlen(read_word)*sizeof(read_word));
-                strcpy(my_word->key_word,read_word);
-
-                //create entry
-                entry word_entry = NULL;
-                create_entry(my_word,&word_entry);
-                free_word(my_word);
-                //add entry to list
-                add_entry(&document_entry_list,&word_entry);
-            }
-        }
-    }
-    
-    //save the last document
-    document_entry_list_array[documents_read] = document_entry_list;
-
-    return document_entry_list_array;
-    
-}
-
 void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold){
     entry head = doc_list->first_node;
     while(head != NULL){
@@ -474,11 +267,11 @@ void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold){
         create_entry_list(&el);
         lookup_entry_index(head->this_word,ix,threshold,&el);
         if(el != NULL ){
-            printf("Word %s matches with:\n",head->this_word->key_word);
+            printf("Word %s matches with:\n",head->this_word);
             entry* result = get_first(&el);
             entry temp = *result;
             while(temp != NULL){
-                printf("%s\n",temp->this_word->key_word);
+                printf("%s\n",temp->this_word);
                 temp = temp->next;
             }
         }
@@ -492,9 +285,9 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* no
     int dist;
 
     if(type == EDIT_DIST){
-        dist = edit_dist(entry_word->key_word,(*ix)->this_word->key_word,strlen(entry_word->key_word),strlen((*ix)->this_word->key_word));
+        dist = edit_dist(entry_word,(*ix)->this_word,strlen(entry_word),strlen((*ix)->this_word));
     }else{
-        dist = humming_distance(entry_word->key_word,(*ix)->this_word->key_word,strlen((*ix)->this_word->key_word));
+        dist = humming_distance(entry_word,(*ix)->this_word,strlen((*ix)->this_word));
     }
     //if ix doesnt have children create a node and set it as his  child
     if(temp_child == NULL){
@@ -538,7 +331,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
 
             //initialize hashtable 
             hash_table[len-1] = malloc(sizeof(Hash_table));
-            //hash_table[len-1]->hash_buckets = malloc(sizeof(Hash_Bucket)*10);
+            hash_table[len-1]->hash_buckets = malloc(sizeof(Hash_Bucket*)*10);
             
             //initialize hash buckets
             for(int i=0 ; i<= 9 ;i++){
@@ -548,26 +341,19 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
             hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
             if((*ix) == NULL){                  //bk root hasnt been initialized
-                //create struct word
-                //unnecessary, just fix struct word
-                word* my_word1 = malloc(sizeof(word));
-                my_word1->key_word = malloc(strlen(read_word)+1);
-                strcpy(my_word1->key_word,read_word);
+                word* my_word= malloc(strlen(read_word)+1);
+                strcpy(my_word,read_word);
 
-
-
-
-                bk_create_node(ix,my_word1,0);
+                bk_create_node(ix,my_word,0);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = *ix;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
+
             }else{
-                //unnecessary, just fix struct word
-                word* my_word1 = malloc(sizeof(word));
-                my_word1->key_word = malloc(strlen(read_word)+1);
-                strcpy(my_word1->key_word,read_word);
+                word* my_word= malloc(strlen(read_word)+1);
+                strcpy(my_word,read_word);
 
                 bk_index node = NULL;
-                bk_add_node(ix, my_word1, 1, &node);
+                bk_add_node(ix, my_word, 1, &node);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }
@@ -581,19 +367,17 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
                 //first word for this bucket, create the bucket
                 hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
-                //unnecessary, just fix struct word
-                word* my_word1 = malloc(sizeof(word));
-                my_word1->key_word = malloc(strlen(read_word)+1);
-                strcpy(my_word1->key_word,read_word);
+                word* my_word= malloc(strlen(read_word)+1);
+                strcpy(my_word,read_word);
 
                 bk_index node = NULL;
-                bk_add_node(ix, my_word1, 1, &node);
+                bk_add_node(ix, my_word, 1, &node);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
                 int found = -1;
                 while (current != NULL){
-                    if(strcmp(current->node->this_word->key_word,read_word) == 0){       //does the word exist
+                    if(strcmp(current->node->this_word,read_word) == 0){       //does the word exist
                         found = 1;
                         //exists it should be added to payload *AND MAYBE THRESHOLD FOR THIS QUERY?* and we are done
                         printf("I found word %s again\n",read_word);
@@ -602,14 +386,11 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
                     current = current->next;
                 }
                 if(found == -1){                // it was not found, we shall add it and add it to the list of buckets
-                    //unnecessary, just fix struct word
-                    word* my_word1 = malloc(sizeof(word));
-                    my_word1->key_word = malloc(strlen(read_word)+1);
-                    strcpy(my_word1->key_word,read_word);
-
+                    word* my_word= malloc(strlen(read_word)+1);
+                    strcpy(my_word,read_word);
 
                     bk_index node = NULL;
-                    bk_add_node(ix, my_word1, 1, &node);
+                    bk_add_node(ix, my_word, 1, &node);
                     //create this hash_bucket to store data
                     Hash_Bucket* new_bucket = malloc(sizeof(Hash_Bucket));
                     new_bucket->node = node;
@@ -652,7 +433,7 @@ void print_hash_tables(Hash_table** hash_table){
                 while(current != NULL){
                     printf("Printing length %d hash %d:\n",i+1,j);
                     //access the bk node that this bucket points to
-                    printf("%s     ->",current->node->this_word->key_word);
+                    printf("%s     ->",current->node->this_word);
                     current = current->next;
                 }printf("\n");
             }
@@ -661,21 +442,20 @@ void print_hash_tables(Hash_table** hash_table){
     }
 }
 
-void delete_hash_tables(Hash_table** hash_tables){
+void delete_hash_tables_edit(Hash_table** hash_tables){
     for(int i=0; i <= 28; i++){
         //if this hash table has been allocated, free it; else move on
         if(hash_tables[i] != NULL){
             for(int j=0; j <= 9; j++){
-                Hash_Bucket* current = hash_tables[i]->hash_buckets[j];
-                if(current != NULL){
+                //Hash_Bucket* current = hash_tables[i]->hash_buckets[j];
                     Hash_Bucket* temp ; 
-                    while(current != NULL){        //if there exists at least one bucket, free it and every next it has
-                        temp = current;
-                        current = current->next;
+                    while(hash_tables[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
+                        temp = hash_tables[i]->hash_buckets[j];
+                        hash_tables[i]->hash_buckets[j] = hash_tables[i]->hash_buckets[j]->next;
                         free(temp); 
                     }
-                }
             }
+            free(hash_tables[i]->hash_buckets);
             free(hash_tables[i]);
         }
     }
@@ -730,33 +510,32 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
 
             //initialize hashtable 
             hash_table_exact[len-1] = malloc(sizeof(Hash_table_exact));
-            
+            hash_table_exact[len-1]->hash_buckets = malloc(sizeof(entry)*10);
+
             //initialize hash buckets
             for(int i=0 ; i<= 9 ;i++){
                 hash_table_exact[len-1]->hash_buckets[i] = NULL;
             }
-            word* my_word = malloc(sizeof(word));
-            my_word->key_word = malloc(strlen(read_word)+1);
-            strcpy(my_word->key_word,read_word);
+            word* my_word= malloc(strlen(read_word)+1);
+            strcpy(my_word,read_word);
 
             create_entry(my_word,&hash_table_exact[len-1]->hash_buckets[word_hash_value]);
-            free_word(my_word);
+            //free_word(my_word);
 
         }else{              //this hash table has been initialized
         
             entry current = hash_table_exact[len-1]->hash_buckets[word_hash_value];
             if(hash_table_exact[len-1]->hash_buckets[word_hash_value] == NULL){
 
-                word* my_word = malloc(sizeof(word));
-                my_word->key_word = malloc(strlen(read_word)+1);
-                strcpy(my_word->key_word,read_word);
+                word* my_word= malloc(strlen(read_word)+1);
+                strcpy(my_word,read_word);
 
                 create_entry(my_word,&hash_table_exact[len-1]->hash_buckets[word_hash_value]);
-                free_word(my_word);
+                //free_word(my_word);
             }else{
                 int found = -1;
                 while (current != NULL){
-                    if(strcmp(current->this_word->key_word,read_word) == 0){       //does the word exist
+                    if(strcmp(current->this_word,read_word) == 0){       //does the word exist
                         found = 1;
                         //exists it should be added to payload *AND MAYBE THRESHOLD FOR THIS QUERY?* and we are done
                         printf("I found word %s again\n",read_word);
@@ -765,16 +544,14 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
                     current = current->next;
                 }
                 if(found == -1){                // it was not found, we shall add it and add it to the list of buckets
-                    //unnecessary, just fix struct word
-                    word* my_word = malloc(sizeof(word));
-                    my_word->key_word = malloc(strlen(read_word)+1);
-                    strcpy(my_word->key_word,read_word);
+                    word* my_word= malloc(strlen(read_word)+1);
+                    strcpy(my_word,read_word);
 
                     entry temp_entry = NULL;
 
                     create_entry(my_word,&temp_entry);
                     add_entry_no_list(hash_table_exact[len-1]->hash_buckets[word_hash_value],temp_entry);
-                    free_word(my_word);
+                    //free_word(my_word);
                 }
             }
         }
@@ -800,7 +577,7 @@ void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int t
 
             //initialize hashtable 
             hash_table[len-1] = malloc(sizeof(Hash_table));
-            //hash_table[len-1]->hash_buckets = malloc(sizeof(Hash_Bucket)*10);
+            hash_table[len-1]->hash_buckets = malloc(sizeof(Hash_Bucket*)*10);
             
             //initialize hash buckets
             for(int i=0 ; i<= 9 ;i++){
@@ -810,26 +587,19 @@ void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int t
             hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
             if(humming_root_table[len-1] == NULL){                  //bk root hasnt been initialized
-                //create struct word
-                //unnecessary, just fix struct word
-                word* my_word1 = malloc(sizeof(word));
-                my_word1->key_word = malloc(strlen(read_word)+1);
-                strcpy(my_word1->key_word,read_word);
+                word* my_word= malloc(strlen(read_word)+1);
+                strcpy(my_word,read_word);
 
-
-
-
-                bk_create_node(&humming_root_table[len-1],my_word1,0);
+                bk_create_node(&humming_root_table[len-1],my_word,0);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = humming_root_table[len-1];
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
                 //unnecessary, just fix struct word
-                word* my_word1 = malloc(sizeof(word));
-                my_word1->key_word = malloc(strlen(read_word)+1);
-                strcpy(my_word1->key_word,read_word);
+                word* my_word= malloc(strlen(read_word)+1);
+                strcpy(my_word,read_word);
 
                 bk_index node = NULL;
-                bk_add_node(&humming_root_table[len-1], my_word1, 1, &node);
+                bk_add_node(&humming_root_table[len-1], my_word, 1, &node);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }
@@ -844,19 +614,17 @@ void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int t
                 //first word for this bucket, create the bucket
                 hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
-                //unnecessary, just fix struct word
-                word* my_word1 = malloc(sizeof(word));
-                my_word1->key_word = malloc(strlen(read_word)+1);
-                strcpy(my_word1->key_word,read_word);
+                word* my_word= malloc(strlen(read_word)+1);
+                strcpy(my_word,read_word);
 
                 bk_index node = NULL;
-                bk_add_node(&humming_root_table[len-1], my_word1, 1, &node);
+                bk_add_node(&humming_root_table[len-1], my_word, 1, &node);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
                 int found = -1;
                 while (current != NULL){
-                    if(strcmp(current->node->this_word->key_word,read_word) == 0){       //does the word exist
+                    if(strcmp(current->node->this_word,read_word) == 0){       //does the word exist
                         found = 1;
                         //exists it should be added to payload *AND MAYBE THRESHOLD FOR THIS QUERY?* and we are done
                         printf("I found word %s again\n",read_word);
@@ -865,14 +633,11 @@ void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int t
                     current = current->next;
                 }
                 if(found == -1){                // it was not found, we shall add it and add it to the list of buckets
-                    //unnecessary, just fix struct word
-                    word* my_word1 = malloc(sizeof(word));
-                    my_word1->key_word = malloc(strlen(read_word)+1);
-                    strcpy(my_word1->key_word,read_word);
-
+                    word* my_word= malloc(strlen(read_word)+1);
+                    strcpy(my_word,read_word);
 
                     bk_index node = NULL;
-                    bk_add_node(&humming_root_table[len-1], my_word1, 1, &node);
+                    bk_add_node(&humming_root_table[len-1], my_word, 1, &node);
                     //create this hash_bucket to store data
                     Hash_Bucket* new_bucket = malloc(sizeof(Hash_Bucket));
                     new_bucket->node = node;
@@ -906,11 +671,59 @@ void print_hash_table_exact(Hash_table_exact** hash_table_exact){
                     printf("Printing bucket %d\n",j);
                     entry temp = hash_table_exact[i]->hash_buckets[j]; 
                     while(temp !=NULL ){
-                        printf("%s     ->",temp->this_word->key_word);
+                        printf("%s     ->",temp->this_word);
                         temp =temp->next;
                     }
                 }
             }
         }
     }
+}
+
+void delete_hash_tables_humming(Hash_table** hash_tables, bk_index* humming_root_table){
+    
+    for(int i=0; i <= 28; i++){
+        //if this hash table has been allocated, free it; else move on
+        if(hash_tables[i] != NULL){
+            for(int j=0; j <= 9; j++){
+                //free the hash_table itself
+                Hash_Bucket* temp ; 
+                while(hash_tables[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
+                    temp = hash_tables[i]->hash_buckets[j];
+                    hash_tables[i]->hash_buckets[j] = hash_tables[i]->hash_buckets[j]->next;
+                    free(temp); 
+                }
+            }
+            free(hash_tables[i]->hash_buckets);
+            free(hash_tables[i]);
+
+            //if hash table has been initialized then we have at least a root for a bk of this length
+            //free the bk trees starting from their roots
+            destroy_entry_index(&humming_root_table[i]);
+        }
+    }
+
+    //finally, free both arrays
+    free(hash_tables);
+    free(humming_root_table);
+}
+
+void delete_hash_tables_exact(Hash_table_exact** hash_tables_exact){
+    for(int i=0; i <= 28; i++){
+        //if this hash table has been allocated, free it; else move on
+        if(hash_tables_exact[i] != NULL){
+            for(int j=0; j <= 9; j++){
+                //free the hash_table itself
+                entry temp ; 
+                while(hash_tables_exact[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
+                    temp = hash_tables_exact[i]->hash_buckets[j];
+                    hash_tables_exact[i]->hash_buckets[j] = hash_tables_exact[i]->hash_buckets[j]->next;
+                    destroy_entry(&temp); 
+                }
+            }
+            free(hash_tables_exact[i]->hash_buckets);
+            free(hash_tables_exact[i]);
+        }
+    }
+    free(hash_tables_exact);
 }

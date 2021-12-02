@@ -2,13 +2,17 @@
 #include <stdlib.h>
 #include "./include/structs.h"
 #include <string.h>
+#include <time.h> 
 
 //array used to pass all query words
 char temp[MAX_DOC_LENGTH];
 
 int main(int argc, char* argv[]){
+    //clock added
+    double time_spent = 0.0;
+    clock_t begin = clock();
 
-   FILE* fp = fopen("./files/queries1.txt","r");
+   FILE* fp = fopen("./files/queries.txt","r");
    if(fp == NULL){
       printf("Couldnt open file.\n");
       exit(-1);
@@ -20,15 +24,26 @@ int main(int argc, char* argv[]){
     int fres;
    
     bk_index ix = NULL;
-    Hash_table** hash_tables = malloc(sizeof(Hash_table*)* 29);
-    for(int i = 0; i <=28 ; i++){
-       hash_tables[i] = NULL;
-    } 
 
-    bk_index* humming_root_table = malloc(sizeof(bk_index)*29);
+    //Edit distance structures
+    /*
+    bk_index ix = NULL;
+    Hash_table** hash_tables_edit = malloc(sizeof(Hash_table*)* 29);
     for(int i = 0; i <=28 ; i++){
-       humming_root_table[i] = NULL;
-    }  
+       hash_tables_edit[i] = NULL;
+    } */
+
+    //Humming distance structures
+    // bk_index* humming_root_table = malloc(sizeof(bk_index)*29);
+    // for(int i = 0; i <=28 ; i++){
+    //    humming_root_table[i] = NULL;
+    // }  
+    // Hash_table** hash_tables_humming = malloc(sizeof(Hash_table*)* 29);
+    // for(int i = 0; i <=28 ; i++){
+    //    hash_tables_humming[i] = NULL;
+    // } 
+
+    //Exact matching structures
 
     Hash_table_exact** hash_tables_exact = malloc(sizeof(Hash_table_exact*)* 29);
     for(int i = 0; i <=28 ; i++){
@@ -59,40 +74,45 @@ int main(int argc, char* argv[]){
             //process files with match_type == 2
             if(match_type == 2){
                 //deduplicate query words, insert them into the list
-                //deduplicate_edit_distance(temp, query_id, match_dist, match_type, hash_tables, &ix);
+                //deduplicate_edit_distance(temp, query_id, match_dist, match_type, hash_tables_edit, &ix);
             }else if(match_type == 0){
                 deduplicate_exact_matching(temp, query_id, match_dist, match_type, hash_tables_exact, bloom_filter);
             }else if(match_type == 1){
-                //deduplicate_humming(temp, query_id, match_dist, match_type, hash_tables, humming_root_table);
+                //deduplicate_humming(temp, query_id, match_dist, match_type, hash_tables_humming, humming_root_table);
             }
         }else{
             break;
         }
 		
     }
-    print_hash_table_exact(hash_tables_exact);
-    /*for(int i=0; i<=28;i++){
-        print_bk_tree(humming_root_table[i],0);
-    }
 
-    print_hash_tables(hash_tables);
+    //printing of each struct follows
+    //print_hash_table_exact(hash_tables_exact);
+
+    //print_hash_tables(hash_tables_edit);
     //print_bk_tree(ix,0);
-    delete_hash_tables(hash_tables);
-    destroy_entry_index(&ix);
-    fclose(fp);*/
 
+    //print_hash_tables(hash_tables_humming);
+    // for(int i=0; i<=28;i++){
+    //     print_bk_tree(humming_root_table[i],0);
+    // }
 
+    //Edit distance structures free'd
+    /*delete_hash_tables_edit(hash_tables_edit);
+    destroy_entry_index(&ix);*/
 
+    //Humming distance structures free'd
+    //delete_hash_tables_humming(hash_tables_humming,humming_root_table);
 
-    /*for(int i=0; i<=28 ; i++){
-        for(int j=0; j <=9 ; j++){
-            if(hash_tables[i] != NULL){
-                free(hash_tables[i]->hash_buckets[j]);
-            }
-        }
-        free(hash_tables[i]);
-    }
-    free(hash_tables);*/
+    //Exact match structure free'd
+    delete_hash_tables_exact(hash_tables_exact);
+
+    //close input file
+    fclose(fp);
+
+    clock_t end = clock();
+    time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
+    printf("The elapsed time is %f seconds\n", time_spent);
 
    // if(argc != 3){
    //    printf("Invalid number of arguments given\n");

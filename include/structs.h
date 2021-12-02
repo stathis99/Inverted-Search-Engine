@@ -1,8 +1,10 @@
 #include <stdio.h>
 
-typedef struct word{
+/*typedef struct word{
     char* key_word;
-}word;
+}word;*/
+
+typedef char word;
 
 //structs for entry list
 typedef struct Entry{
@@ -49,8 +51,8 @@ entry* get_next(const entry_list* el, entry* e);
 int min2(int x, int y);
 int min3(int x, int y, int z);
 entry_list read_document(int* number);
-int edit_Dist(char* str1, char* str2, int len1, int len2);
-int humming_distance(char* str1, char* str2, int len);
+int edit_distance(const char* str1, const char* str2, int len1, int len2);
+int humming_distance(const char* str1, const char* str2, int len);
 enum error_code build_entry_index_sort(const entry_list* el, enum match_type type, bk_index* ix);
 enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result);
 void print_bk_tree(bk_index ix,int pos);
@@ -122,8 +124,8 @@ typedef enum{
 #define MAX_QUERY_LENGTH ((MAX_WORD_LENGTH+1)*MAX_QUERY_WORDS)
 
 typedef struct Hash_table{
-    //struct Hash_Bucket** hash_buckets;
-    struct Hash_Bucket* hash_buckets[10];
+    struct Hash_Bucket** hash_buckets;
+    //struct Hash_Bucket* hash_buckets[10];
 }Hash_table;
 
 typedef struct Hash_Bucket{
@@ -143,10 +145,12 @@ typedef struct Payload{
 }Payload;
 
 typedef struct Hash_table_exact{
-    entry hash_buckets[10];
+    entry* hash_buckets;
 }Hash_table_exact;
 
 void deduplicate_exact_matching(const char* temp, unsigned int , int , int, Hash_table_exact** hash_table_exact, int bloom_filter[]);
 void deduplicate_humming(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* humming_root_table);
 enum error_code add_entry_no_list(entry first, const entry new_entry);
 void print_hash_table_exact(Hash_table_exact** hash_table_exact);
+void delete_hash_tables_humming(Hash_table**, bk_index*);
+void delete_hash_tables_exact(Hash_table_exact** hash_tables_exact);

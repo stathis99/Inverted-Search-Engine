@@ -1,7 +1,7 @@
 #include  "../include/acutest.h"			
 #include "../include/structs.h"
 
-void test_entry_list_create(){
+/*void test_entry_list_create(){
 	//initialize entry list
 	entry_list my_entry_list ;
 	create_entry_list(&my_entry_list);
@@ -124,4 +124,4 @@ TEST_LIST = {
 	{ "Test BK with Empty List", test_bk_tree_empty },
 	{ "Test BK with List", test_bk_tree },
 	{ NULL, NULL } // τερματίζουμε τη λίστα με NULL
-};
+};*/
