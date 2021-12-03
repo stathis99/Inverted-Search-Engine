@@ -195,7 +195,14 @@ int humming_distance(const char* str1, const char* str2, int len){
 
     bk_index temp_child  = ix->child;
     
-    printf("\n\n   %s:%d  %d \n\n",ix->this_word,ix->weight,pos);
+    printf("\n\n   %s:%d  %d \n",ix->this_word,ix->weight,pos);
+
+    Payload* temp_payload;
+    temp_payload = ix->payload;
+    do{
+        printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+        temp_payload = temp_payload->next;
+    }while(temp_payload != NULL);
 
     while(temp_child != NULL){
         print_bk_tree(temp_child,pos-1);
@@ -205,13 +212,20 @@ int humming_distance(const char* str1, const char* str2, int len){
  }
 
 //creates a bk tree node
-bk_index bk_create_node(bk_index* ix,word* entry_word,int weight){
+bk_index bk_create_node(bk_index* ix,word* entry_word,int weight,int queryId, int dist){
 
         (*ix) = malloc(sizeof(Index));
         (*ix)->weight = weight;
         (*ix)->this_word = entry_word;
         (*ix)->next = NULL;
         (*ix)-> child = NULL;
+
+        //this is for payload might change
+        (*ix)->payload = malloc(sizeof(Payload));
+        (*ix)->payload->next = NULL;
+        (*ix)->payload->queryId = queryId;
+        (*ix)->payload->threshold = dist;
+
         return *ix;
 }
 
@@ -248,6 +262,12 @@ enum error_code destroy_entry_index(bk_index* ix){
     bk_index temp_child  = (*ix)->child;
     //temporary because of unnecessary word* struct
     free((*ix)->this_word);
+    Payload* curr;
+    while((*ix)->payload != NULL){
+	    curr = (*ix)->payload;
+	    (*ix)->payload = (*ix)->payload->next;
+	free(curr);
+    }
     free(*ix);
     bk_index temp_child_next;
     while(temp_child != NULL){
@@ -280,7 +300,7 @@ void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold){
     }
 }
 
-int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* node){
+int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* node, int queryId, int threshold){
     bk_index temp_child  = (*ix)->child;
     int dist;
 
@@ -292,7 +312,7 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* no
     //if ix doesnt have children create a node and set it as his  child
     if(temp_child == NULL){
 
-        *node = bk_create_node(&(*ix)->child, entry_word, dist);
+        *node = bk_create_node(&(*ix)->child, entry_word, dist,queryId,threshold);
         return 1; 
 
     }else{
@@ -302,13 +322,13 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* no
 
             //if exists child with same dist go to this child , child
             if(temp_child->weight == dist){
-                bk_add_node(&temp_child ,entry_word,type, node);
+                bk_add_node(&temp_child ,entry_word,type, node,queryId,dist);
                 return 1;
             }
             //if we wave seen all ix children and there is no child with same distance
             if(temp_child->next == NULL){
                 //add new node at the end of children
-                *node = bk_create_node(&(temp_child->next),entry_word,dist);
+                *node = bk_create_node(&(temp_child->next),entry_word,dist,queryId,threshold);
                 return 1;
             }
             temp_child = temp_child -> next;
@@ -316,6 +336,18 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* no
     }
     return 1;
 }
+
+
+//adds new payload to payload list
+void add_payload(struct Payload* payload,int queryId, int dist){
+    Payload* new_payload = malloc(sizeof(Payload));
+    new_payload->queryId = queryId;
+    new_payload->threshold = dist;
+    new_payload->next = payload->next;
+    payload->next = new_payload;
+}
+
+
 
 void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist, int type, Hash_table** hash_table, bk_index* ix){
     char* read_word;
@@ -344,7 +376,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
                 word* my_word= malloc(strlen(read_word)+1);
                 strcpy(my_word,read_word);
 
-                bk_create_node(ix,my_word,0);
+                bk_create_node(ix,my_word,0,queryId,dist);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = *ix;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
 
@@ -353,7 +385,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
                 strcpy(my_word,read_word);
 
                 bk_index node = NULL;
-                bk_add_node(ix, my_word, 1, &node);
+                bk_add_node(ix, my_word, 1, &node, queryId,dist);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }
@@ -371,7 +403,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
                 strcpy(my_word,read_word);
 
                 bk_index node = NULL;
-                bk_add_node(ix, my_word, 1, &node);
+                bk_add_node(ix, my_word, 1, &node,queryId,dist);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
@@ -379,8 +411,8 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
                 while (current != NULL){
                     if(strcmp(current->node->this_word,read_word) == 0){       //does the word exist
                         found = 1;
-                        //exists it should be added to payload *AND MAYBE THRESHOLD FOR THIS QUERY?* and we are done
-                        printf("I found word %s again\n",read_word);
+                        //printf("I found word %s again\n",read_word);
+                        add_payload(current->node->payload,queryId,dist);
                         break;
                     }
                     current = current->next;
@@ -390,7 +422,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
                     strcpy(my_word,read_word);
 
                     bk_index node = NULL;
-                    bk_add_node(ix, my_word, 1, &node);
+                    bk_add_node(ix, my_word, 1, &node,queryId,dist);
                     //create this hash_bucket to store data
                     Hash_Bucket* new_bucket = malloc(sizeof(Hash_Bucket));
                     new_bucket->node = node;
@@ -537,7 +569,6 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
                 while (current != NULL){
                     if(strcmp(current->this_word,read_word) == 0){       //does the word exist
                         found = 1;
-                        //exists it should be added to payload *AND MAYBE THRESHOLD FOR THIS QUERY?* and we are done
                         printf("I found word %s again\n",read_word);
                         break;
                     }
@@ -590,7 +621,7 @@ void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int t
                 word* my_word= malloc(strlen(read_word)+1);
                 strcpy(my_word,read_word);
 
-                bk_create_node(&humming_root_table[len-1],my_word,0);
+                bk_create_node(&humming_root_table[len-1],my_word,0,queryId,dist);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = humming_root_table[len-1];
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
@@ -599,7 +630,7 @@ void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int t
                 strcpy(my_word,read_word);
 
                 bk_index node = NULL;
-                bk_add_node(&humming_root_table[len-1], my_word, 1, &node);
+                bk_add_node(&humming_root_table[len-1], my_word, 1, &node,queryId,dist);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }
@@ -618,7 +649,7 @@ void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int t
                 strcpy(my_word,read_word);
 
                 bk_index node = NULL;
-                bk_add_node(&humming_root_table[len-1], my_word, 1, &node);
+                bk_add_node(&humming_root_table[len-1], my_word, 1, &node,queryId,dist);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
@@ -626,7 +657,7 @@ void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int t
                 while (current != NULL){
                     if(strcmp(current->node->this_word,read_word) == 0){       //does the word exist
                         found = 1;
-                        //exists it should be added to payload *AND MAYBE THRESHOLD FOR THIS QUERY?* and we are done
+                        add_payload(current->node->payload,queryId,dist);
                         printf("I found word %s again\n",read_word);
                         break;
                     }
@@ -637,7 +668,7 @@ void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int t
                     strcpy(my_word,read_word);
 
                     bk_index node = NULL;
-                    bk_add_node(&humming_root_table[len-1], my_word, 1, &node);
+                    bk_add_node(&humming_root_table[len-1], my_word, 1, &node,queryId,dist);
                     //create this hash_bucket to store data
                     Hash_Bucket* new_bucket = malloc(sizeof(Hash_Bucket));
                     new_bucket->node = node;

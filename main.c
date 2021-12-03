@@ -23,25 +23,24 @@ int main(int argc, char* argv[]){
 	unsigned int query_id;
     int fres;
    
-    bk_index ix = NULL;
 
     //Edit distance structures
-    /*
-    bk_index ix = NULL;
-    Hash_table** hash_tables_edit = malloc(sizeof(Hash_table*)* 29);
-    for(int i = 0; i <=28 ; i++){
-       hash_tables_edit[i] = NULL;
-    } */
+    
+    // bk_index ix = NULL;
+    // Hash_table** hash_tables_edit = malloc(sizeof(Hash_table*)* 29);
+    // for(int i = 0; i <=28 ; i++){
+    //    hash_tables_edit[i] = NULL;
+    // } 
 
     //Humming distance structures
-    // bk_index* humming_root_table = malloc(sizeof(bk_index)*29);
-    // for(int i = 0; i <=28 ; i++){
-    //    humming_root_table[i] = NULL;
-    // }  
-    // Hash_table** hash_tables_humming = malloc(sizeof(Hash_table*)* 29);
-    // for(int i = 0; i <=28 ; i++){
-    //    hash_tables_humming[i] = NULL;
-    // } 
+    bk_index* humming_root_table = malloc(sizeof(bk_index)*29);
+    for(int i = 0; i <=28 ; i++){
+       humming_root_table[i] = NULL;
+    }  
+    Hash_table** hash_tables_humming = malloc(sizeof(Hash_table*)* 29);
+    for(int i = 0; i <=28 ; i++){
+       hash_tables_humming[i] = NULL;
+    } 
 
     //Exact matching structures
 
@@ -92,10 +91,10 @@ int main(int argc, char* argv[]){
     //print_hash_tables(hash_tables_edit);
     //print_bk_tree(ix,0);
 
-    //print_hash_tables(hash_tables_humming);
-    // for(int i=0; i<=28;i++){
-    //     print_bk_tree(humming_root_table[i],0);
-    // }
+    print_hash_tables(hash_tables_humming);
+    for(int i=0; i<=28;i++){
+        print_bk_tree(humming_root_table[i],0);
+    }
 
     //Edit distance structures free'd
     /*delete_hash_tables_edit(hash_tables_edit);

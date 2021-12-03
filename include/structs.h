@@ -4,6 +4,8 @@
     char* key_word;
 }word;*/
 
+
+
 typedef char word;
 
 //structs for entry list
@@ -21,6 +23,11 @@ typedef struct Entry_List{
 }Entry_List;
 typedef Entry_List *entry_list;
 
+typedef struct Payload{
+    unsigned int queryId;
+    int threshold;
+    struct Payload* next;
+}Payload;
 
 //struct for bk tree
 typedef struct Index{
@@ -28,6 +35,7 @@ typedef struct Index{
     int weight;
     struct Index* next;
     struct Index* child;
+    struct Payload* payload;
 }Index;
 typedef Index *bk_index;
 
@@ -57,7 +65,7 @@ enum error_code build_entry_index_sort(const entry_list* el, enum match_type typ
 enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result);
 void print_bk_tree(bk_index ix,int pos);
 enum error_code destroy_entry_index(bk_index* ix);
-bk_index bk_create_node(bk_index* ix,word* entry_word,int weight);
+bk_index bk_create_node(bk_index* ix,word* entry_word,int weight, int queryId, int dist);
 entry_list read_queries(int* number,FILE* fp);
 int count_documents(FILE* fp);
 entry_list* read_documents(int* number,FILE* fp,int number_of_documents);
@@ -65,7 +73,7 @@ void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold);
 
 
 //new functions to create BK without sorting inner nodes
-int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* node);
+int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* node, int queryId, int dist);
 enum error_code build_entry_index(const entry_list* el, enum match_type type, bk_index* ix);
 
 
@@ -139,10 +147,7 @@ unsigned long hash(unsigned char *str);
 void delete_hash_tables(Hash_table**);
 void print_hash_tables(Hash_table** hash_table);
 
-typedef struct Payload{
-    unsigned int queryId;
-    int threshold;
-}Payload;
+
 
 typedef struct Hash_table_exact{
     entry* hash_buckets;
@@ -154,3 +159,5 @@ enum error_code add_entry_no_list(entry first, const entry new_entry);
 void print_hash_table_exact(Hash_table_exact** hash_table_exact);
 void delete_hash_tables_humming(Hash_table**, bk_index*);
 void delete_hash_tables_exact(Hash_table_exact** hash_tables_exact);
+
+void add_payload(struct Payload* payload,int queryId, int dist);
