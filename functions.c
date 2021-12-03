@@ -8,15 +8,16 @@ void free_word(word* w){
     free(w);
 }
 
-enum error_code create_entry(const word* w, entry* e){
+enum error_code create_entry(const word* w, entry* e,unsigned int queryId,int dist){
     *e = malloc(sizeof(Entry));
 
-    //duplicate the word
-    //is this needed?
-    // (*e)->this_word = malloc(strlen(w)+1);
-    // strcpy((*e)->this_word,w);
     (*e)->this_word = (word*)w;
-    (*e)->payload = NULL;
+
+    (*e)->payload = malloc(sizeof(Payload));
+    (*e)->payload->queryId = queryId;
+    (*e)->payload->threshold = dist;
+    (*e)->payload->next = NULL;
+
     (*e)->next = NULL;
     return SUCCESS;
 }
@@ -25,8 +26,14 @@ enum error_code destroy_entry(entry* e){
     if(*e == NULL){
         return NULL_POINTER;
     }
-    //free((*e)->payload[0]);
-    //free((*e)->payload);
+    
+    Payload* curr;
+    while((*e)->payload != NULL){
+	    curr = (*e)->payload;
+	    (*e)->payload = (*e)->payload->next;
+	    free(curr);
+    }
+
     free((*e)->this_word);
     free(*e);
     return SUCCESS;
@@ -172,7 +179,7 @@ int edit_dist(const char* str1, const char* str2, int len1, int len2){
     return cost[len1][len2];
 }
 
-int humming_distance(const char* str1, const char* str2, int len){
+int hamming_distance(const char* str1, const char* str2, int len){
     
     //compare characters one by one
     int distance = 0;
@@ -222,9 +229,9 @@ bk_index bk_create_node(bk_index* ix,word* entry_word,int weight,int queryId, in
 
         //this is for payload might change
         (*ix)->payload = malloc(sizeof(Payload));
-        (*ix)->payload->next = NULL;
         (*ix)->payload->queryId = queryId;
         (*ix)->payload->threshold = dist;
+        (*ix)->payload->next = NULL;
 
         return *ix;
 }
@@ -238,7 +245,7 @@ enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, e
     //if ix keyword is close to w then create an entry and add it to the results
     if( dist <= threshold ){
         entry my_entry = NULL;
-        create_entry((*ix)->this_word,&my_entry);
+        //create_entry((*ix)->this_word,&my_entry);
         add_entry(result,&my_entry);
     }
 
@@ -262,12 +269,14 @@ enum error_code destroy_entry_index(bk_index* ix){
     bk_index temp_child  = (*ix)->child;
     //temporary because of unnecessary word* struct
     free((*ix)->this_word);
+
     Payload* curr;
     while((*ix)->payload != NULL){
 	    curr = (*ix)->payload;
 	    (*ix)->payload = (*ix)->payload->next;
-	free(curr);
+	    free(curr);
     }
+
     free(*ix);
     bk_index temp_child_next;
     while(temp_child != NULL){
@@ -307,7 +316,7 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* no
     if(type == EDIT_DIST){
         dist = edit_dist(entry_word,(*ix)->this_word,strlen(entry_word),strlen((*ix)->this_word));
     }else{
-        dist = humming_distance(entry_word,(*ix)->this_word,strlen((*ix)->this_word));
+        dist = hamming_distance(entry_word,(*ix)->this_word,strlen((*ix)->this_word));
     }
     //if ix doesnt have children create a node and set it as his  child
     if(temp_child == NULL){
@@ -551,7 +560,7 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
             word* my_word= malloc(strlen(read_word)+1);
             strcpy(my_word,read_word);
 
-            create_entry(my_word,&hash_table_exact[len-1]->hash_buckets[word_hash_value]);
+            create_entry(my_word,&hash_table_exact[len-1]->hash_buckets[word_hash_value],queryId,dist);
             //free_word(my_word);
 
         }else{              //this hash table has been initialized
@@ -562,13 +571,14 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
                 word* my_word= malloc(strlen(read_word)+1);
                 strcpy(my_word,read_word);
 
-                create_entry(my_word,&hash_table_exact[len-1]->hash_buckets[word_hash_value]);
+                create_entry(my_word,&hash_table_exact[len-1]->hash_buckets[word_hash_value],queryId,dist);
                 //free_word(my_word);
             }else{
                 int found = -1;
                 while (current != NULL){
                     if(strcmp(current->this_word,read_word) == 0){       //does the word exist
                         found = 1;
+                        add_payload(current->payload,queryId,dist);
                         printf("I found word %s again\n",read_word);
                         break;
                     }
@@ -580,7 +590,7 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
 
                     entry temp_entry = NULL;
 
-                    create_entry(my_word,&temp_entry);
+                    create_entry(my_word,&temp_entry,queryId,dist);
                     add_entry_no_list(hash_table_exact[len-1]->hash_buckets[word_hash_value],temp_entry);
                     //free_word(my_word);
                 }
@@ -592,7 +602,7 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
 
 }
 
-void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int type, Hash_table** hash_table, bk_index* humming_root_table){
+void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int type, Hash_table** hash_table, bk_index* hamming_root_table){
 
 
     char* read_word;
@@ -617,12 +627,12 @@ void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int t
             //hash word to find bucket
             hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
-            if(humming_root_table[len-1] == NULL){                  //bk root hasnt been initialized
+            if(hamming_root_table[len-1] == NULL){                  //bk root hasnt been initialized
                 word* my_word= malloc(strlen(read_word)+1);
                 strcpy(my_word,read_word);
 
-                bk_create_node(&humming_root_table[len-1],my_word,0,queryId,dist);
-                hash_table[len-1]->hash_buckets[word_hash_value]->node = humming_root_table[len-1];
+                bk_create_node(&hamming_root_table[len-1],my_word,0,queryId,dist);
+                hash_table[len-1]->hash_buckets[word_hash_value]->node = hamming_root_table[len-1];
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
                 //unnecessary, just fix struct word
@@ -630,7 +640,7 @@ void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int t
                 strcpy(my_word,read_word);
 
                 bk_index node = NULL;
-                bk_add_node(&humming_root_table[len-1], my_word, 1, &node,queryId,dist);
+                bk_add_node(&hamming_root_table[len-1], my_word, 1, &node,queryId,dist);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }
@@ -649,7 +659,7 @@ void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int t
                 strcpy(my_word,read_word);
 
                 bk_index node = NULL;
-                bk_add_node(&humming_root_table[len-1], my_word, 1, &node,queryId,dist);
+                bk_add_node(&hamming_root_table[len-1], my_word, 1, &node,queryId,dist);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
@@ -668,7 +678,7 @@ void deduplicate_humming(const char* temp, unsigned int queryId, int dist, int t
                     strcpy(my_word,read_word);
 
                     bk_index node = NULL;
-                    bk_add_node(&humming_root_table[len-1], my_word, 1, &node,queryId,dist);
+                    bk_add_node(&hamming_root_table[len-1], my_word, 1, &node,queryId,dist);
                     //create this hash_bucket to store data
                     Hash_Bucket* new_bucket = malloc(sizeof(Hash_Bucket));
                     new_bucket->node = node;
@@ -701,8 +711,13 @@ void print_hash_table_exact(Hash_table_exact** hash_table_exact){
                 if( hash_table_exact[i]->hash_buckets[j] != NULL){
                     printf("Printing bucket %d\n",j);
                     entry temp = hash_table_exact[i]->hash_buckets[j]; 
-                    while(temp !=NULL ){
-                        printf("%s     ->",temp->this_word);
+                    while(temp != NULL){
+                        printf("%s     ->\n\n",temp->this_word);
+                        Payload* temp_payload = temp->payload;
+                        while(temp_payload != NULL){
+                            printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+                            temp_payload = temp_payload->next;
+                        }
                         temp =temp->next;
                     }
                 }
@@ -711,7 +726,7 @@ void print_hash_table_exact(Hash_table_exact** hash_table_exact){
     }
 }
 
-void delete_hash_tables_humming(Hash_table** hash_tables, bk_index* humming_root_table){
+void delete_hash_tables_hamming(Hash_table** hash_tables, bk_index* hamming_root_table){
     
     for(int i=0; i <= 28; i++){
         //if this hash table has been allocated, free it; else move on
@@ -730,13 +745,13 @@ void delete_hash_tables_humming(Hash_table** hash_tables, bk_index* humming_root
 
             //if hash table has been initialized then we have at least a root for a bk of this length
             //free the bk trees starting from their roots
-            destroy_entry_index(&humming_root_table[i]);
+            destroy_entry_index(&hamming_root_table[i]);
         }
     }
 
     //finally, free both arrays
     free(hash_tables);
-    free(humming_root_table);
+    free(hamming_root_table);
 }
 
 void delete_hash_tables_exact(Hash_table_exact** hash_tables_exact){

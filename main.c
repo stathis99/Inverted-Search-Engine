@@ -12,47 +12,47 @@ int main(int argc, char* argv[]){
     double time_spent = 0.0;
     clock_t begin = clock();
 
-   FILE* fp = fopen("./files/queries.txt","r");
-   if(fp == NULL){
-      printf("Couldnt open file.\n");
-      exit(-1);
-   }
+    FILE* fp = fopen("./files/queries.txt","r");
+    if(fp == NULL){
+        printf("Couldnt open file.\n");
+        exit(-1);
+    }
 
- //read and store all queries
+    //read and store all queries
     char ch;
 	unsigned int query_id;
     int fres;
    
-
     //Edit distance structures
     
-    // bk_index ix = NULL;
-    // Hash_table** hash_tables_edit = malloc(sizeof(Hash_table*)* 29);
-    // for(int i = 0; i <=28 ; i++){
-    //    hash_tables_edit[i] = NULL;
-    // } 
-
-    //Humming distance structures
-    bk_index* humming_root_table = malloc(sizeof(bk_index)*29);
+    bk_index ix = NULL;
+    Hash_table** hash_tables_edit = malloc(sizeof(Hash_table*)* 29);
     for(int i = 0; i <=28 ; i++){
-       humming_root_table[i] = NULL;
-    }  
-    Hash_table** hash_tables_humming = malloc(sizeof(Hash_table*)* 29);
-    for(int i = 0; i <=28 ; i++){
-       hash_tables_humming[i] = NULL;
+       hash_tables_edit[i] = NULL;
     } 
+
+    //Hamming distance structures
+
+    // bk_index* hamming_root_table = malloc(sizeof(bk_index)*29);
+    // for(int i = 0; i <=28 ; i++){
+    //    hamming_root_table[i] = NULL;
+    // }  
+    // Hash_table** hash_tables_hamming = malloc(sizeof(Hash_table*)* 29);
+    // for(int i = 0; i <=28 ; i++){
+    //    hash_tables_hamming[i] = NULL;
+    // } 
 
     //Exact matching structures
 
-    Hash_table_exact** hash_tables_exact = malloc(sizeof(Hash_table_exact*)* 29);
-    for(int i = 0; i <=28 ; i++){
-       hash_tables_exact[i] = NULL;
-    } 
+    // Hash_table_exact** hash_tables_exact = malloc(sizeof(Hash_table_exact*)* 29);
+    // for(int i = 0; i <=28 ; i++){
+    //    hash_tables_exact[i] = NULL;
+    // } 
 
-    int bloom_filter[100];
-    for(int i = 0; i<99; i++){
-        bloom_filter[i] = 0;
-    }
+    // int bloom_filter[100];
+    // for(int i = 0; i<99; i++){
+    //     bloom_filter[i] = 0;
+    // }
 
     //start processing queries
     while(1){
@@ -71,13 +71,12 @@ int main(int argc, char* argv[]){
 			}
 
             //process files with match_type == 2
-            if(match_type == 2){
-                //deduplicate query words, insert them into the list
-                //deduplicate_edit_distance(temp, query_id, match_dist, match_type, hash_tables_edit, &ix);
-            }else if(match_type == 0){
-                deduplicate_exact_matching(temp, query_id, match_dist, match_type, hash_tables_exact, bloom_filter);
+            if(match_type == 0){
+                //deduplicate_exact_matching(temp, query_id, match_dist, match_type, hash_tables_exact, bloom_filter);
             }else if(match_type == 1){
-                //deduplicate_humming(temp, query_id, match_dist, match_type, hash_tables_humming, humming_root_table);
+                //deduplicate_hamming(temp, query_id, match_dist, match_type, hash_tables_hamming, hamming_root_table);
+            }else if(match_type == 2){
+                deduplicate_edit_distance(temp, query_id, match_dist, match_type, hash_tables_edit, &ix);
             }
         }else{
             break;
@@ -91,17 +90,17 @@ int main(int argc, char* argv[]){
     //print_hash_tables(hash_tables_edit);
     //print_bk_tree(ix,0);
 
-    print_hash_tables(hash_tables_humming);
-    for(int i=0; i<=28;i++){
-        print_bk_tree(humming_root_table[i],0);
-    }
+    // print_hash_tables(hash_tables_hamming);
+    // for(int i=0; i<=28;i++){
+    //     print_bk_tree(hamming_root_table[i],0);
+    // }
 
     //Edit distance structures free'd
-    /*delete_hash_tables_edit(hash_tables_edit);
-    destroy_entry_index(&ix);*/
+    //delete_hash_tables_edit(hash_tables_edit);
+    //destroy_entry_index(&ix);
 
-    //Humming distance structures free'd
-    //delete_hash_tables_humming(hash_tables_humming,humming_root_table);
+    //Hamming distance structures free'd
+    //delete_hash_tables_hamming(hash_tables_hamming,hamming_root_table);
 
     //Exact match structure free'd
     delete_hash_tables_exact(hash_tables_exact);
@@ -119,11 +118,11 @@ int main(int argc, char* argv[]){
    // }
 
    // enum match_type my_match_type;
-   // //choose EDIT_DIST or HUMMING_DIST
+   // //choose EDIT_DIST or HAMMING_DIST
    // if(atoi(argv[1]) == 1){
    //    my_match_type = EDIT_DIST;
    // }else if(atoi(argv[1]) == 2){
-   //    my_match_type = HUMMING_DIST;
+   //    my_match_type = HAMMING_DIST;
    // }else{
    //    printf("Invalid match type given\n");
    //    exit(-1);

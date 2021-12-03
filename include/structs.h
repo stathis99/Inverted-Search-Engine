@@ -1,16 +1,16 @@
 #include <stdio.h>
 
-/*typedef struct word{
-    char* key_word;
-}word;*/
-
-
-
 typedef char word;
+
+typedef struct Payload{
+    unsigned int queryId;
+    int threshold;
+    struct Payload* next;
+}Payload;
 
 //structs for entry list
 typedef struct Entry{
-    char** payload;
+    Payload* payload;
     word* this_word;
     struct Entry* next;
 }Entry;
@@ -23,29 +23,23 @@ typedef struct Entry_List{
 }Entry_List;
 typedef Entry_List *entry_list;
 
-typedef struct Payload{
-    unsigned int queryId;
-    int threshold;
-    struct Payload* next;
-}Payload;
-
 //struct for bk tree
 typedef struct Index{
     word* this_word;
     int weight;
     struct Index* next;
     struct Index* child;
-    struct Payload* payload;
+    Payload* payload;
 }Index;
 typedef Index *bk_index;
 
 
 enum error_code { SUCCESS = 0, ERROR = 1, NULL_POINTER = 2};
-enum match_type { EDIT_DIST = 1, HUMMING_DIST = 2};
+enum match_type { EDIT_DIST = 1, HAMMING_DIST = 2};
 
 
 void free_word(word* w);
-enum error_code create_entry(const word* w, entry* e);
+enum error_code create_entry(const word* w, entry* e,unsigned int queryId,int dist);
 enum error_code destroy_entry(entry* e);
 enum error_code create_entry_list(entry_list* el);
 enum error_code add_entry(entry_list* el, const entry* e);
@@ -60,7 +54,7 @@ int min2(int x, int y);
 int min3(int x, int y, int z);
 entry_list read_document(int* number);
 int edit_distance(const char* str1, const char* str2, int len1, int len2);
-int humming_distance(const char* str1, const char* str2, int len);
+int hamming_distance(const char* str1, const char* str2, int len);
 enum error_code build_entry_index_sort(const entry_list* el, enum match_type type, bk_index* ix);
 enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result);
 void print_bk_tree(bk_index ix,int pos);
@@ -141,23 +135,20 @@ typedef struct Hash_Bucket{
     bk_index node;
 }Hash_Bucket;
 
-
 void deduplicate_edit_distance(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* ix);
 unsigned long hash(unsigned char *str);
-void delete_hash_tables(Hash_table**);
+void delete_hash_tables_edit(Hash_table**);
 void print_hash_tables(Hash_table** hash_table);
-
-
 
 typedef struct Hash_table_exact{
     entry* hash_buckets;
 }Hash_table_exact;
 
 void deduplicate_exact_matching(const char* temp, unsigned int , int , int, Hash_table_exact** hash_table_exact, int bloom_filter[]);
-void deduplicate_humming(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* humming_root_table);
+void deduplicate_hamming(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* hamming_root_table);
 enum error_code add_entry_no_list(entry first, const entry new_entry);
 void print_hash_table_exact(Hash_table_exact** hash_table_exact);
-void delete_hash_tables_humming(Hash_table**, bk_index*);
+void delete_hash_tables_hamming(Hash_table**, bk_index*);
 void delete_hash_tables_exact(Hash_table_exact** hash_tables_exact);
 
 void add_payload(struct Payload* payload,int queryId, int dist);
