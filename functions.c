@@ -2,6 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+//global structs we are using
+int bloom_filter_exact[100];
+int bloom_filter_hamming[100];
+int bloom_filter_edit[100];
+int bloom_filter_overall[100];
+
 
 //entry functions
 void free_word(word* w){
@@ -365,7 +371,15 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
     while(read_word != NULL){
         int len = strlen(read_word);
         printf("%s %d %d %d \n",read_word ,queryId, dist, type );
-        
+
+        int word_hash_value1 = jenkins(read_word)%100;
+        int word_hash_value2 = djb2(read_word)%100;
+
+        bloom_filter_exact[word_hash_value1] = 1;
+        bloom_filter_exact[word_hash_value2] = 1;
+        bloom_filter_overall[word_hash_value1] = 1;
+        bloom_filter_overall[word_hash_value2] = 1;
+
         int word_hash_value = hash(read_word)%10;
         printf("Word %s hashes to %d\n",read_word,word_hash_value);
         if(hash_table[len-1] == NULL){
@@ -505,7 +519,7 @@ void delete_hash_tables_edit(Hash_table** hash_tables){
 
 unsigned int djb2(const void *_str) {
 	const char *str = _str;
-	unsigned int hash = 5381;
+    unsigned int hash = 5381;
 	char c;
 	while ((c = *str++)) {
 		hash = ((hash << 5) + hash) + c;
@@ -530,7 +544,7 @@ unsigned int jenkins(const void *_str) {
 
 
 
-void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist, int type, Hash_table_exact** hash_table_exact, int bloom_filter[]){
+void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist, int type, Hash_table_exact** hash_table_exact){
     
     char* read_word;
     char* temp_temp = (char*)temp; 
@@ -538,11 +552,14 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
     while(read_word != NULL){
         int len = strlen(read_word);
         printf("%s %d %d %d \n",read_word ,queryId, dist, type );
+
         int word_hash_value1 = jenkins(read_word)%100;
         int word_hash_value2 = djb2(read_word)%100;
 
-        bloom_filter[word_hash_value1] = 1;
-        bloom_filter[word_hash_value2] = 1;
+        bloom_filter_exact[word_hash_value1] = 1;
+        bloom_filter_exact[word_hash_value2] = 1;
+        bloom_filter_overall[word_hash_value1] = 1;
+        bloom_filter_overall[word_hash_value2] = 1;
 
         int word_hash_value = hash(read_word)%10;
         printf("Word %s hashes to j:%d dj:%d\n",read_word,word_hash_value1,word_hash_value2);
@@ -611,7 +628,16 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
     while(read_word != NULL){
         int len = strlen(read_word);
         printf("%s %d %d %d \n",read_word ,queryId, dist, type );
-        
+
+        int word_hash_value1 = jenkins(read_word)%100;
+        int word_hash_value2 = djb2(read_word)%100;
+
+
+        bloom_filter_hamming[word_hash_value1] = 1;
+        bloom_filter_hamming[word_hash_value2] = 1;
+        bloom_filter_overall[word_hash_value1] = 1;
+        bloom_filter_overall[word_hash_value2] = 1;
+
         int word_hash_value = hash(read_word)%10;
         printf("Word %s hashes to %d\n",read_word,word_hash_value);
         if(hash_table[len-1] == NULL){
@@ -772,4 +798,96 @@ void delete_hash_tables_exact(Hash_table_exact** hash_tables_exact){
         }
     }
     free(hash_tables_exact);
+}
+
+ErrorCode MatchDocument(DocID doc_id, const char* doc_str, Hash_table** hash_tables_edit){
+    for(int i=0; i<= 99;i++){
+        printf("%d %d %d %d\n",bloom_filter_exact[i],bloom_filter_edit[i],bloom_filter_hamming[i],bloom_filter_overall[i]);
+    }
+    
+    char* read_word;
+    char* temp = (char*)doc_str; 
+    read_word = strtok(temp, " ");
+    int count=0;
+    int counte=0;
+    int counth=0;
+    int countex=0;
+    while(read_word != NULL){
+        int len = strlen(read_word);
+        //printf("%s ",read_word);
+
+        if( bloom_filter_overall[jenkins(read_word)%100] != 1 &&
+            bloom_filter_overall[djb2(read_word)%100] != 1){
+            count++;
+            printf("Word %s doesnt not exist\n",read_word);
+            
+        }else{
+
+            if(bloom_filter_edit[jenkins(read_word)%100] != 1 &&
+                bloom_filter_edit[djb2(read_word)%100] != 1){
+                counte++;
+                printf("Word %s doesnt not exist\n",read_word);
+            }else{
+                
+            }
+
+            if(bloom_filter_exact[jenkins(read_word)%100] != 1 &&
+                bloom_filter_exact[djb2(read_word)%100] != 1){
+                countex++;
+                printf("Word %s doesnt not exist\n",read_word);
+            
+            }else{
+
+            }
+
+            if(bloom_filter_hamming[jenkins(read_word)%100] != 1 &&
+                bloom_filter_hamming[djb2(read_word)%100] != 1){
+                counth++;
+                printf("Word %s doesnt not exist\n",read_word);
+            
+            }
+        }
+        read_word = strtok(NULL, " ");
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    printf("%d words skipped from overall\n",count);
+    printf("%d words skipped from edit\n",counte);
+    printf("%d words skipped from exact\n",countex);
+    printf("%d words skipped from ham\n",counth);
+}
+
+ErrorCode InitializeIndex(){
+    for(int i = 0; i<99; i++){
+        bloom_filter_exact[i] = 0;
+    }
+
+    for(int i = 0; i<99; i++){
+        bloom_filter_hamming[i] = 0;
+    }
+    
+    for(int i = 0; i<99; i++){
+        bloom_filter_edit[i] = 0;
+    }
+
+    for(int i = 0; i<99; i++){
+        bloom_filter_overall[i] = 0;
+    }
+
+    return EC_SUCCESS;
+    
 }

@@ -135,7 +135,6 @@ typedef struct Hash_Bucket{
     bk_index node;
 }Hash_Bucket;
 
-void deduplicate_edit_distance(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* ix);
 unsigned long hash(unsigned char *str);
 void delete_hash_tables_edit(Hash_table**);
 void print_hash_tables(Hash_table** hash_table);
@@ -144,11 +143,17 @@ typedef struct Hash_table_exact{
     entry* hash_buckets;
 }Hash_table_exact;
 
-void deduplicate_exact_matching(const char* temp, unsigned int , int , int, Hash_table_exact** hash_table_exact, int bloom_filter[]);
+void deduplicate_edit_distance(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* ix);
+void deduplicate_exact_matching(const char* temp, unsigned int , int , int, Hash_table_exact** hash_table_exact);
 void deduplicate_hamming(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* hamming_root_table);
 enum error_code add_entry_no_list(entry first, const entry new_entry);
 void print_hash_table_exact(Hash_table_exact** hash_table_exact);
 void delete_hash_tables_hamming(Hash_table**, bk_index*);
 void delete_hash_tables_exact(Hash_table_exact** hash_tables_exact);
 
+typedef unsigned int DocID;
 void add_payload(struct Payload* payload,int queryId, int dist);
+ErrorCode MatchDocument(DocID doc_id, const char* doc_str,Hash_table** hash_table_edit);
+ErrorCode InitializeIndex();
+unsigned int djb2(const void *_str);
+unsigned int jenkins(const void *_str);

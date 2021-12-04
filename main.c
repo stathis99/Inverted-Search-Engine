@@ -8,9 +8,16 @@
 char temp[MAX_DOC_LENGTH];
 
 int main(int argc, char* argv[]){
+    
     //clock added
     double time_spent = 0.0;
     clock_t begin = clock();
+
+    //initialize all our global structures
+    if(InitializeIndex() != EC_SUCCESS){
+        printf("InitializeIndex failed.\n");
+        exit(-1);
+    }
 
     FILE* fp = fopen("./files/queries.txt","r");
     if(fp == NULL){
@@ -20,7 +27,7 @@ int main(int argc, char* argv[]){
 
     //read and store all queries
     char ch;
-	unsigned int query_id;
+	unsigned int id;
     int fres;
    
     //Edit distance structures
@@ -29,39 +36,34 @@ int main(int argc, char* argv[]){
     Hash_table** hash_tables_edit = malloc(sizeof(Hash_table*)* 29);
     for(int i = 0; i <=28 ; i++){
        hash_tables_edit[i] = NULL;
-    } 
+    }
 
     //Hamming distance structures
 
-    // bk_index* hamming_root_table = malloc(sizeof(bk_index)*29);
-    // for(int i = 0; i <=28 ; i++){
-    //    hamming_root_table[i] = NULL;
-    // }  
-    // Hash_table** hash_tables_hamming = malloc(sizeof(Hash_table*)* 29);
-    // for(int i = 0; i <=28 ; i++){
-    //    hash_tables_hamming[i] = NULL;
-    // } 
+    bk_index* hamming_root_table = malloc(sizeof(bk_index)*29);
+    for(int i = 0; i <=28 ; i++){
+       hamming_root_table[i] = NULL;
+    }  
+    Hash_table** hash_tables_hamming = malloc(sizeof(Hash_table*)* 29);
+    for(int i = 0; i <=28 ; i++){
+       hash_tables_hamming[i] = NULL;
+    } 
 
     //Exact matching structures
 
-    // Hash_table_exact** hash_tables_exact = malloc(sizeof(Hash_table_exact*)* 29);
-    // for(int i = 0; i <=28 ; i++){
-    //    hash_tables_exact[i] = NULL;
-    // } 
-
-    // int bloom_filter[100];
-    // for(int i = 0; i<99; i++){
-    //     bloom_filter[i] = 0;
-    // }
+    Hash_table_exact** hash_tables_exact = malloc(sizeof(Hash_table_exact*)* 29);
+    for(int i = 0; i <=28 ; i++){
+       hash_tables_exact[i] = NULL;
+    } 
 
     //start processing queries
     while(1){
-        fres = fscanf(fp, "%c %u ", &ch, &query_id);
+        fres = fscanf(fp, "%c %u ", &ch, &id);
         if(fres == EOF){
             break;
         }
 		if(ch == 's'){
-            //printf("Reading query %d\n",query_id);
+            //printf("Reading query %d\n",id);
             int match_type;
 			int match_dist;
 
@@ -72,12 +74,19 @@ int main(int argc, char* argv[]){
 
             //process files with match_type == 2
             if(match_type == 0){
-                //deduplicate_exact_matching(temp, query_id, match_dist, match_type, hash_tables_exact, bloom_filter);
+                deduplicate_exact_matching(temp, id, match_dist, match_type, hash_tables_exact);
             }else if(match_type == 1){
-                //deduplicate_hamming(temp, query_id, match_dist, match_type, hash_tables_hamming, hamming_root_table);
+                deduplicate_hamming(temp, id, match_dist, match_type, hash_tables_hamming, hamming_root_table);
             }else if(match_type == 2){
-                deduplicate_edit_distance(temp, query_id, match_dist, match_type, hash_tables_edit, &ix);
+                deduplicate_edit_distance(temp, id, match_dist, match_type, hash_tables_edit, &ix);
             }
+        }else if(ch == 'm'){
+            
+            if(EOF==fscanf(fp, "%*u %[^\n\r] ", temp)){
+				printf("Corrupted Test File at Read Document.\n");
+				exit(-1);
+			}
+			ErrorCode err=MatchDocument(id, temp,hash_tables_edit);
         }else{
             break;
         }
@@ -103,7 +112,7 @@ int main(int argc, char* argv[]){
     //delete_hash_tables_hamming(hash_tables_hamming,hamming_root_table);
 
     //Exact match structure free'd
-    delete_hash_tables_exact(hash_tables_exact);
+    // delete_hash_tables_exact(hash_tables_exact);
 
     //close input file
     fclose(fp);
