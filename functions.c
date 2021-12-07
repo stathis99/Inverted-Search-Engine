@@ -4,10 +4,16 @@
 
 //global structs we are using
 int bloom_filter_exact[100];
-int bloom_filter_hamming[100];
-int bloom_filter_edit[100];
-int bloom_filter_overall[100];
 
+Query_Hash_Table* Q_Hash_Table;
+
+bk_index ix;
+Hash_table** hash_tables_edit;
+
+bk_index* hamming_root_table;
+Hash_table** hash_tables_hamming;
+
+Hash_table_exact** hash_tables_exact;
 
 //entry functions
 void free_word(word* w){
@@ -399,11 +405,6 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
         int word_hash_value1 = jenkins(read_word)%100;
         int word_hash_value2 = djb2(read_word)%100;
 
-        bloom_filter_exact[word_hash_value1] = 1;
-        bloom_filter_exact[word_hash_value2] = 1;
-        bloom_filter_overall[word_hash_value1] = 1;
-        bloom_filter_overall[word_hash_value2] = 1;
-
         int word_hash_value = hash(read_word)%10;
         //printf("Word %s hashes to %d\n",read_word,word_hash_value);
         if(hash_table[len-1] == NULL){
@@ -495,7 +496,7 @@ unsigned long hash(unsigned char *str){
     int c;
 
     while (c = *str++)
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+        hash = ((hash << 5) + hash) + c;
 
     return hash;
 }
@@ -578,8 +579,7 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
 
         bloom_filter_exact[word_hash_value1] = 1;
         bloom_filter_exact[word_hash_value2] = 1;
-        bloom_filter_overall[word_hash_value1] = 1;
-        bloom_filter_overall[word_hash_value2] = 1;
+
 
         int word_hash_value = hash(read_word)%10;
         //printf("Word %s hashes to j:%d dj:%d\n",read_word,word_hash_value1,word_hash_value2);
@@ -651,12 +651,6 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
 
         int word_hash_value1 = jenkins(read_word)%100;
         int word_hash_value2 = djb2(read_word)%100;
-
-
-        bloom_filter_hamming[word_hash_value1] = 1;
-        bloom_filter_hamming[word_hash_value2] = 1;
-        bloom_filter_overall[word_hash_value1] = 1;
-        bloom_filter_overall[word_hash_value2] = 1;
 
         int word_hash_value = hash(read_word)%10;
         //printf("Word %s hashes to %d\n",read_word,word_hash_value);
@@ -881,24 +875,104 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str, Hash_table** hash_tab
 }
 
 ErrorCode InitializeIndex(){
+
     for(int i = 0; i<99; i++){
         bloom_filter_exact[i] = 0;
     }
 
-    for(int i = 0; i<99; i++){
-        bloom_filter_hamming[i] = 0;
-    }
-    
-    for(int i = 0; i<99; i++){
-        bloom_filter_edit[i] = 0;
+    Q_Hash_Table = malloc(sizeof(Query_Hash_Table));
+    Q_Hash_Table->query_hash_buckets = malloc(sizeof(Query*)*10);
+    for(int i=0; i<= 9; i++){
+        Q_Hash_Table->query_hash_buckets[i] = NULL;
     }
 
-    for(int i = 0; i<99; i++){
-        bloom_filter_overall[i] = 0;
+    //Exact matching structures
+    hash_tables_exact = malloc(sizeof(Hash_table_exact*)* 29);
+    for(int i = 0; i <=28 ; i++){
+       hash_tables_exact[i] = NULL;
     }
+
+    //Hamming distance structures
+    hash_tables_hamming = malloc(sizeof(Hash_table*)* 29);
+    for(int i = 0; i <=28 ; i++){
+       hash_tables_hamming[i] = NULL;
+    }
+
+    hamming_root_table = malloc(sizeof(bk_index)*29);
+    for(int i = 0; i <=28 ; i++){
+       hamming_root_table[i] = NULL;
+    }
+
+    //Edit distance structures
+    hash_tables_edit = malloc(sizeof(Hash_table*)* 29);
+    for(int i = 0; i <=28 ; i++){
+       hash_tables_edit[i] = NULL;
+    }
+    ix = NULL;
 
     return EC_SUCCESS;
-    
 }
 
+ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
+    if(Q_Hash_Table->query_hash_buckets[bucket_num] == NULL){
+        //initialize bucket
+        Q_Hash_Table->query_hash_buckets[bucket_num] = malloc(sizeof(Query));
 
+        //store data
+        Q_Hash_Table->query_hash_buckets[bucket_num]->query_id = query_id;
+        strcpy(Q_Hash_Table->query_hash_buckets[bucket_num]->str,query_str);
+        Q_Hash_Table->query_hash_buckets[bucket_num]->match_dist = match_dist;
+        Q_Hash_Table->query_hash_buckets[bucket_num]->match_type = match_type;
+
+        Q_Hash_Table->query_hash_buckets[bucket_num]->next = NULL;
+    }else{
+        //create new bucket
+        //add it to the start, save time in parsing till the end
+        
+        Query* bucket = malloc(sizeof(Query));
+
+        //store data
+        bucket->query_id = query_id;
+        strcpy(bucket->str,query_str);
+        bucket->match_dist = match_dist;
+        bucket->match_type = match_type;
+
+        //swap first and new
+        Query* temp = Q_Hash_Table->query_hash_buckets[bucket_num];
+        Q_Hash_Table->query_hash_buckets[bucket_num] = bucket;
+        bucket->next = temp;
+    }
+
+}
+
+ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
+
+    //add the query to the query hash table
+    add_query(query_id%10,query_id,query_str, match_type, match_dist);
+
+    //update appropriate data structures
+    if(match_type == 0){
+        deduplicate_exact_matching(query_str, query_id, match_dist, match_type, hash_tables_exact);
+    }else if(match_type == 1){
+        deduplicate_hamming(query_str, query_id, match_dist, match_type, hash_tables_hamming, hamming_root_table);
+    }else if(match_type == 2){
+        deduplicate_edit_distance(query_str, query_id, match_dist, match_type, hash_tables_edit, &ix);
+    }
+}
+
+void print_query_list(){
+    int count = 0;
+    for(int i=0; i<=9; i++){
+        printf("Printing Bucket %d\n",i);
+        if(Q_Hash_Table->query_hash_buckets[i] != NULL ){
+            Query* current = Q_Hash_Table->query_hash_buckets[i];
+            while(current != NULL){
+                printf("%d ->",current->query_id);
+                count++;
+                current = current->next;
+            }
+        }
+        printf("\n");
+    }
+    printf("I have stored %d queries total\n",count);
+}

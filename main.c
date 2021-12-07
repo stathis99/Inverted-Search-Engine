@@ -29,32 +29,6 @@ int main(int argc, char* argv[]){
     char ch;
 	unsigned int id;
     int fres;
-   
-    //Edit distance structures
-    
-    bk_index ix = NULL;
-    Hash_table** hash_tables_edit = malloc(sizeof(Hash_table*)* 29);
-    for(int i = 0; i <=28 ; i++){
-       hash_tables_edit[i] = NULL;
-    }
-
-    //Hamming distance structures
-
-    bk_index* hamming_root_table = malloc(sizeof(bk_index)*29);
-    for(int i = 0; i <=28 ; i++){
-       hamming_root_table[i] = NULL;
-    }  
-    Hash_table** hash_tables_hamming = malloc(sizeof(Hash_table*)* 29);
-    for(int i = 0; i <=28 ; i++){
-       hash_tables_hamming[i] = NULL;
-    } 
-
-    //Exact matching structures
-
-    Hash_table_exact** hash_tables_exact = malloc(sizeof(Hash_table_exact*)* 29);
-    for(int i = 0; i <=28 ; i++){
-       hash_tables_exact[i] = NULL;
-    } 
 
     //start processing queries
     while(1){
@@ -72,13 +46,10 @@ int main(int argc, char* argv[]){
 				exit(-1);
 			}
 
-            //process files with match_type == 2
-            if(match_type == 0){
-                deduplicate_exact_matching(temp, id, match_dist, match_type, hash_tables_exact);
-            }else if(match_type == 1){
-                deduplicate_hamming(temp, id, match_dist, match_type, hash_tables_hamming, hamming_root_table);
-            }else if(match_type == 2){
-                deduplicate_edit_distance(temp, id, match_dist, match_type, hash_tables_edit, &ix);
+            //start query
+            if(StartQuery(id, temp, match_type, match_dist) == EC_FAIL){
+                printf("StartQuery failed for QueryID %d\n",id);
+                exit(-1);
             }
         }else if(ch == 'm'){
             
