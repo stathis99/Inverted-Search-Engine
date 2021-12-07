@@ -157,3 +157,26 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str,Hash_table** hash_tabl
 ErrorCode InitializeIndex();
 unsigned int djb2(const void *_str);
 unsigned int jenkins(const void *_str);
+
+//structures for query data storage
+typedef unsigned int QueryID;
+typedef struct Query{
+	QueryID query_id;
+	char str[MAX_QUERY_LENGTH];
+	MatchType match_type;
+	unsigned int match_dist;
+    struct Query* next;
+}Query;
+
+/*typedef struct Query_Hash_Bucket{
+    struct Query_Hash_Bucket* next;
+    Query* query;
+}Query_Hash_Bucket;
+*/
+typedef struct Query_Hash_Table{
+    Query** query_hash_buckets;
+}Query_Hash_Table;
+
+ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist);
+ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist);
+void print_query_list();
