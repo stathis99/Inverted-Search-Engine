@@ -815,7 +815,7 @@ void delete_hash_tables_exact(Hash_table_exact** hash_tables_exact){
     free(hash_tables_exact);
 }
 
-void lookup_exact(const word* w,Hash_table_exact** hash_table_exact){
+void lookup_exact(const word* w,Hash_table_exact** hash_table_exact, result_node** head){
     for(int i=0; i<=28; i++){
         if(hash_table_exact[i] != NULL){
             for(int j=0; j< 10; j++){
@@ -823,12 +823,36 @@ void lookup_exact(const word* w,Hash_table_exact** hash_table_exact){
                     entry temp = hash_table_exact[i]->hash_buckets[j]; 
                     while(temp != NULL){
                         if (strcmp(temp->this_word,w) == 0){
-                        printf("%s     ->\n\n",temp->this_word);
-                        Payload* temp_payload = temp->payload;
-                        while(temp_payload != NULL){
-                            //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
-                            temp_payload = temp_payload->next;
-                        }                          
+                            //printf("%s     ->\n\n",temp->this_word);
+                            if(*head == NULL){
+                                *head = malloc(sizeof(result_node));
+                                (*head)->next = NULL;
+                                (*head)->this_entry = temp;
+                            }else{
+                                result_node* current = *head;
+                                int found = -1;
+                                while(current != NULL){
+                                    if(strcmp(current->this_entry->this_word,w) == 0){
+                                        found = 1;
+                                        break;
+                                    }
+                                    current = current->next;
+                                }
+                                if(found == -1){
+                                    result_node* new_node = malloc(sizeof(result_node));
+                                    new_node->next = NULL;
+                                    new_node->this_entry = temp; 
+
+                                    result_node* second = (*head)->next;
+                                    (*head)->next = new_node;
+                                    new_node->next = second;
+                                }
+                            }
+                            // Payload* temp_payload = temp->payload;
+                            // while(temp_payload != NULL){
+                            //     //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+                            //     temp_payload = temp_payload->next;
+                            // }                          
                         }
                         temp =temp->next;
                     }
@@ -850,28 +874,39 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
     int counte=0;
     int counth=0;
     int countex=0;
+    result_node* r_node= NULL;
 
     while(read_word != NULL){
 
         //look in edit distance
         for(int i=1;i<=3;i++){
-            lookup_entry_index(read_word,&ix,i,1);
+            //lookup_entry_index(read_word,&ix,i,1);
         }
         //look in hamming distance
             int length_word = strlen(read_word)-1;
                 if(hamming_root_table[length_word] != NULL){
                     for(int i=1;i<=3;i++){
-                       lookup_entry_index(read_word,&hamming_root_table[length_word],i,2);
+                       //lookup_entry_index(read_word,&hamming_root_table[length_word],i,2);
                     }
                 }
 
             
         //look in exact matching
-    
-        lookup_exact(read_word,hash_tables_exact);
 
+        lookup_exact(read_word,hash_tables_exact, &r_node);
 
         read_word = strtok(NULL, " ");
+    }
+    result_node* temp_node = r_node;
+    while(temp_node != NULL){
+        printf("%s ->",temp_node->this_entry->this_word);
+        Payload* temp_payload = temp_node->this_entry->payload;
+        while(temp_payload != NULL){
+            printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+            temp_payload = temp_payload->next;
+        }
+        printf("\n");
+        temp_node = temp_node->next;
     }
 }
 
@@ -976,4 +1011,8 @@ void print_query_list(){
         printf("\n");
     }
     printf("I have stored %d queries total\n",count);
+}
+
+void match_query(result_node* head){
+
 }

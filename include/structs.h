@@ -16,6 +16,11 @@ typedef struct Entry{
 }Entry;
 typedef Entry *entry;
 
+typedef struct result_node{
+    struct result_node* next;
+    entry this_entry;
+}result_node;
+
 typedef struct Entry_List{
     entry first_node;
     entry last_node;
@@ -176,3 +181,5 @@ typedef struct Query_Hash_Table{
 ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist);
 ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist);
 void print_query_list();
+void lookup_exact(const word* w,Hash_table_exact** hash_table_exact, result_node** head);
+void match_query(result_node* head);
