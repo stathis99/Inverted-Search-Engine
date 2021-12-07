@@ -249,10 +249,10 @@ bk_index bk_create_node(bk_index* ix,word* entry_word,int weight,int queryId, in
 }
 
 
-enum error_code look_for_threshold(struct Payload* payload,int threshold,const word* w ){
+enum error_code look_for_threshold(struct Payload* payload,int threshold,const word* q_w,const word* w){
     while(payload != NULL){
         if(payload->threshold == threshold){
-            printf("%s q:%d t:%d \n",w,payload->queryId,payload->threshold);
+            printf("%s = %s q:%d t:%d \n",q_w,w,payload->queryId,payload->threshold);
         }
         payload = payload->next;
     }
@@ -261,12 +261,12 @@ enum error_code look_for_threshold(struct Payload* payload,int threshold,const w
 
 enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold,int match_type){
     bk_index temp_child  = (*ix)->child;
+    int dist;
     if(match_type == 1){
-        int dist = edit_dist(w,(*ix)->this_word,strlen(w),strlen((*ix)->this_word));
+        dist = edit_dist(w,(*ix)->this_word,strlen(w),strlen((*ix)->this_word));
     }else{
-        int dist = hamming_distance(w,(*ix)->this_word,strlen(w));
+        dist = hamming_distance(w,(*ix)->this_word,strlen(w));
     }
-    int dist = edit_dist(w,(*ix)->this_word,strlen(w),strlen((*ix)->this_word));
     int min_dist = dist - threshold;
     int max_dist = dist + threshold;
 
@@ -275,7 +275,8 @@ enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold,in
         //entry my_entry = NULL;
         //create_entry((*ix)->this_word,&my_entry);
         //add_entry(result,&my_entry);
-        look_for_threshold((*ix)->payload,threshold,w);
+
+        look_for_threshold((*ix)->payload,threshold,(*ix)->this_word,w);
 
     }
 
@@ -699,7 +700,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
                 strcpy(my_word,read_word);
 
                 bk_index node = NULL;
-                bk_add_node(&hamming_root_table[len-1], my_word, 1, &node,queryId,dist);
+                bk_add_node(&hamming_root_table[len-1], my_word, 2, &node,queryId,dist);
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
@@ -718,7 +719,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
                     strcpy(my_word,read_word);
 
                     bk_index node = NULL;
-                    bk_add_node(&hamming_root_table[len-1], my_word, 1, &node,queryId,dist);
+                    bk_add_node(&hamming_root_table[len-1], my_word, 2, &node,queryId,dist);
                     //create this hash_bucket to store data
                     Hash_Bucket* new_bucket = malloc(sizeof(Hash_Bucket));
                     new_bucket->node = node;
@@ -839,7 +840,7 @@ void lookup_exact(const word* w,Hash_table_exact** hash_table_exact){
 
 
 
-ErrorCode MatchDocument(DocID doc_id, const char* doc_str, Hash_table** hash_tables_edit,bk_index ix,bk_index* hamming_root_table,Hash_table_exact** hash_tables_exact ){
+ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
 
     
     const word* read_word;
@@ -854,20 +855,20 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str, Hash_table** hash_tab
 
         //look in edit distance
         for(int i=1;i<=3;i++){
-           lookup_entry_index(read_word,&ix,i,1);
+            lookup_entry_index(read_word,&ix,i,1);
         }
         //look in hamming distance
-            for(int j=0; j<=28;j++){
-                if(hamming_root_table[j] != NULL){
+            int length_word = strlen(read_word)-1;
+                if(hamming_root_table[length_word] != NULL){
                     for(int i=1;i<=3;i++){
-                       lookup_entry_index(read_word,&hamming_root_table[j],i,2);
+                       lookup_entry_index(read_word,&hamming_root_table[length_word],i,2);
                     }
                 }
 
-            }
+            
         //look in exact matching
     
-        //lookup_exact(read_word,hash_tables_exact);
+        lookup_exact(read_word,hash_tables_exact);
 
 
         read_word = strtok(NULL, " ");

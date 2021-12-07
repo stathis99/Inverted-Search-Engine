@@ -57,7 +57,7 @@ int main(int argc, char* argv[]){
 				printf("Corrupted Test File at Read Document.\n");
 				exit(-1);
 			}
-			ErrorCode err=MatchDocument(id, temp,hash_tables_edit,ix,hamming_root_table,hash_tables_exact);
+			ErrorCode err=MatchDocument(id, temp);
         }else{
             break;
         }
