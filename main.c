@@ -86,23 +86,32 @@ int main(int argc, char* argv[]){
 				printf("Corrupted Test File at Read Document.\n");
 				exit(-1);
 			}
-			ErrorCode err=MatchDocument(id, temp,hash_tables_edit);
+			ErrorCode err=MatchDocument(id, temp,hash_tables_edit,ix,hamming_root_table,hash_tables_exact);
         }else{
             break;
         }
 		
     }
+    //printf("\nEdit Distance Evretitio\n");
+    //print_bk_tree(ix,0);
+
+    // printf("\nHamming Distance Evretirio\n");
+    // for(int i=0; i<=28;i++){
+    //     if(hamming_root_table[i] != NULL){
+    //          printf("\n\nbk tree of length word %d\n",i+1);
+    //         print_bk_tree(hamming_root_table[i],0);
+    //     }
+
+    // }
+
 
     //printing of each struct follows
     //print_hash_table_exact(hash_tables_exact);
 
     //print_hash_tables(hash_tables_edit);
-    //print_bk_tree(ix,0);
 
     // print_hash_tables(hash_tables_hamming);
-    // for(int i=0; i<=28;i++){
-    //     print_bk_tree(hamming_root_table[i],0);
-    // }
+
 
     //Edit distance structures free'd
     //delete_hash_tables_edit(hash_tables_edit);

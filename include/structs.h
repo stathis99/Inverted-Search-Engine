@@ -56,7 +56,7 @@ entry_list read_document(int* number);
 int edit_distance(const char* str1, const char* str2, int len1, int len2);
 int hamming_distance(const char* str1, const char* str2, int len);
 enum error_code build_entry_index_sort(const entry_list* el, enum match_type type, bk_index* ix);
-enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result);
+enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold,int match_type);
 void print_bk_tree(bk_index ix,int pos);
 enum error_code destroy_entry_index(bk_index* ix);
 bk_index bk_create_node(bk_index* ix,word* entry_word,int weight, int queryId, int dist);
@@ -64,6 +64,7 @@ entry_list read_queries(int* number,FILE* fp);
 int count_documents(FILE* fp);
 entry_list* read_documents(int* number,FILE* fp,int number_of_documents);
 void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold);
+enum error_code look_for_threshold(struct Payload* payload,int threshold,const word* w);
 
 
 //new functions to create BK without sorting inner nodes
@@ -153,7 +154,7 @@ void delete_hash_tables_exact(Hash_table_exact** hash_tables_exact);
 
 typedef unsigned int DocID;
 void add_payload(struct Payload* payload,int queryId, int dist);
-ErrorCode MatchDocument(DocID doc_id, const char* doc_str,Hash_table** hash_table_edit);
+ErrorCode MatchDocument(DocID doc_id, const char* doc_str,Hash_table** hash_table_edit,bk_index ix,bk_index* hamming_root_table,Hash_table_exact** hash_tables_exact);
 ErrorCode InitializeIndex();
 unsigned int djb2(const void *_str);
 unsigned int jenkins(const void *_str);

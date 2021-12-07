@@ -208,12 +208,12 @@ int hamming_distance(const char* str1, const char* str2, int len){
 
     bk_index temp_child  = ix->child;
     
-    printf("\n\n   %s:%d  %d \n",ix->this_word,ix->weight,pos);
+    printf("\n\n   %s:%d  %d     ",ix->this_word,ix->weight,pos);
 
     Payload* temp_payload;
     temp_payload = ix->payload;
     do{
-        printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+        printf("q:%d t:%d ",temp_payload->queryId,temp_payload->threshold);
         temp_payload = temp_payload->next;
     }while(temp_payload != NULL);
 
@@ -242,30 +242,51 @@ bk_index bk_create_node(bk_index* ix,word* entry_word,int weight,int queryId, in
         return *ix;
 }
 
-enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold, entry_list* result){
+
+enum error_code look_for_threshold(struct Payload* payload,int threshold,const word* w ){
+    while(payload != NULL){
+        if(payload->threshold == threshold){
+            printf("%s q:%d t:%d \n",w,payload->queryId,payload->threshold);
+        }
+        payload = payload->next;
+    }
+}
+
+
+enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold,int match_type){
     bk_index temp_child  = (*ix)->child;
+    if(match_type == 1){
+        int dist = edit_dist(w,(*ix)->this_word,strlen(w),strlen((*ix)->this_word));
+    }else{
+        int dist = hamming_distance(w,(*ix)->this_word,strlen(w));
+    }
     int dist = edit_dist(w,(*ix)->this_word,strlen(w),strlen((*ix)->this_word));
     int min_dist = dist - threshold;
     int max_dist = dist + threshold;
 
     //if ix keyword is close to w then create an entry and add it to the results
     if( dist <= threshold ){
-        entry my_entry = NULL;
+        //entry my_entry = NULL;
         //create_entry((*ix)->this_word,&my_entry);
-        add_entry(result,&my_entry);
+        //add_entry(result,&my_entry);
+        look_for_threshold((*ix)->payload,threshold,w);
+
     }
 
     //traverse the tree retrospectively 
     while(temp_child != NULL){
         //if distance child from the parent is  [𝑑 − 𝑛, 𝑑 + 𝑛] then call retrospectively 
         if(temp_child->weight >= min_dist && temp_child->weight <= max_dist ){
-            lookup_entry_index(w,&temp_child,threshold,result);
+            lookup_entry_index(w,&temp_child,threshold,match_type);
         }
         temp_child = temp_child->next;   
     }
     
     return SUCCESS;
 }
+
+
+
 
 enum error_code destroy_entry_index(bk_index* ix){
     if(*ix == NULL){
@@ -300,7 +321,7 @@ void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold){
     while(head != NULL){
         entry_list el ;
         create_entry_list(&el);
-        lookup_entry_index(head->this_word,ix,threshold,&el);
+        //lookup_entry_index(head->this_word,ix,threshold);
         if(el != NULL ){
             printf("Word %s matches with:\n",head->this_word);
             entry* result = get_first(&el);
@@ -314,6 +335,9 @@ void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold){
         head = head->next;
     }
 }
+
+
+
 
 int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* node, int queryId, int threshold){
     bk_index temp_child  = (*ix)->child;
@@ -337,7 +361,7 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* no
 
             //if exists child with same dist go to this child , child
             if(temp_child->weight == dist){
-                bk_add_node(&temp_child ,entry_word,type, node,queryId,dist);
+                bk_add_node(&temp_child ,entry_word,type, node,queryId,threshold);
                 return 1;
             }
             //if we wave seen all ix children and there is no child with same distance
@@ -370,7 +394,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
     read_word = strtok(temp_temp, " ");
     while(read_word != NULL){
         int len = strlen(read_word);
-        printf("%s %d %d %d \n",read_word ,queryId, dist, type );
+        //printf("%s %d %d %d \n",read_word ,queryId, dist, type );
 
         int word_hash_value1 = jenkins(read_word)%100;
         int word_hash_value2 = djb2(read_word)%100;
@@ -381,7 +405,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
         bloom_filter_overall[word_hash_value2] = 1;
 
         int word_hash_value = hash(read_word)%10;
-        printf("Word %s hashes to %d\n",read_word,word_hash_value);
+        //printf("Word %s hashes to %d\n",read_word,word_hash_value);
         if(hash_table[len-1] == NULL){
 
             //initialize hashtable 
@@ -456,13 +480,9 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
                     //first bucket is now the new one
                     hash_table[len-1]->hash_buckets[word_hash_value] = new_bucket;
                     new_bucket->next = previous_first;
-
-
                 }
             }
         }
-   
-
 
         //processing of current word ended, move on to the next one
         read_word = strtok(NULL, " ");
@@ -551,7 +571,7 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
     read_word = strtok(temp_temp, " ");
     while(read_word != NULL){
         int len = strlen(read_word);
-        printf("%s %d %d %d \n",read_word ,queryId, dist, type );
+        //printf("%s %d %d %d \n",read_word ,queryId, dist, type );
 
         int word_hash_value1 = jenkins(read_word)%100;
         int word_hash_value2 = djb2(read_word)%100;
@@ -562,7 +582,7 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
         bloom_filter_overall[word_hash_value2] = 1;
 
         int word_hash_value = hash(read_word)%10;
-        printf("Word %s hashes to j:%d dj:%d\n",read_word,word_hash_value1,word_hash_value2);
+        //printf("Word %s hashes to j:%d dj:%d\n",read_word,word_hash_value1,word_hash_value2);
         
         if(hash_table_exact[len-1] == NULL){
 
@@ -596,7 +616,7 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
                     if(strcmp(current->this_word,read_word) == 0){       //does the word exist
                         found = 1;
                         add_payload(current->payload,queryId,dist);
-                        printf("I found word %s again\n",read_word);
+                        //printf("I found word %s again\n",read_word);
                         break;
                     }
                     current = current->next;
@@ -627,7 +647,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
     read_word = strtok(temp_temp, " ");
     while(read_word != NULL){
         int len = strlen(read_word);
-        printf("%s %d %d %d \n",read_word ,queryId, dist, type );
+        //printf("%s %d %d %d \n",read_word ,queryId, dist, type );
 
         int word_hash_value1 = jenkins(read_word)%100;
         int word_hash_value2 = djb2(read_word)%100;
@@ -639,7 +659,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
         bloom_filter_overall[word_hash_value2] = 1;
 
         int word_hash_value = hash(read_word)%10;
-        printf("Word %s hashes to %d\n",read_word,word_hash_value);
+        //printf("Word %s hashes to %d\n",read_word,word_hash_value);
         if(hash_table[len-1] == NULL){
 
             //initialize hashtable 
@@ -694,7 +714,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
                     if(strcmp(current->node->this_word,read_word) == 0){       //does the word exist
                         found = 1;
                         add_payload(current->node->payload,queryId,dist);
-                        printf("I found word %s again\n",read_word);
+                        //printf("I found word %s again\n",read_word);
                         break;
                     }
                     current = current->next;
@@ -800,75 +820,64 @@ void delete_hash_tables_exact(Hash_table_exact** hash_tables_exact){
     free(hash_tables_exact);
 }
 
-ErrorCode MatchDocument(DocID doc_id, const char* doc_str, Hash_table** hash_tables_edit){
-    for(int i=0; i<= 99;i++){
-        printf("%d %d %d %d\n",bloom_filter_exact[i],bloom_filter_edit[i],bloom_filter_hamming[i],bloom_filter_overall[i]);
+void lookup_exact(const word* w,Hash_table_exact** hash_table_exact){
+    for(int i=0; i<=28; i++){
+        if(hash_table_exact[i] != NULL){
+            for(int j=0; j< 10; j++){
+                if( hash_table_exact[i]->hash_buckets[j] != NULL){
+                    entry temp = hash_table_exact[i]->hash_buckets[j]; 
+                    while(temp != NULL){
+                        if (strcmp(temp->this_word,w) == 0){
+                        printf("%s     ->\n\n",temp->this_word);
+                        Payload* temp_payload = temp->payload;
+                        while(temp_payload != NULL){
+                            //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+                            temp_payload = temp_payload->next;
+                        }                          
+                        }
+                        temp =temp->next;
+                    }
+                }
+            }
+        }
     }
+}
+
+
+
+ErrorCode MatchDocument(DocID doc_id, const char* doc_str, Hash_table** hash_tables_edit,bk_index ix,bk_index* hamming_root_table,Hash_table_exact** hash_tables_exact ){
+
     
-    char* read_word;
+    const word* read_word;
     char* temp = (char*)doc_str; 
     read_word = strtok(temp, " ");
     int count=0;
     int counte=0;
     int counth=0;
     int countex=0;
+
     while(read_word != NULL){
-        int len = strlen(read_word);
-        //printf("%s ",read_word);
 
-        if( bloom_filter_overall[jenkins(read_word)%100] != 1 &&
-            bloom_filter_overall[djb2(read_word)%100] != 1){
-            count++;
-            printf("Word %s doesnt not exist\n",read_word);
-            
-        }else{
-
-            if(bloom_filter_edit[jenkins(read_word)%100] != 1 &&
-                bloom_filter_edit[djb2(read_word)%100] != 1){
-                counte++;
-                printf("Word %s doesnt not exist\n",read_word);
-            }else{
-                
-            }
-
-            if(bloom_filter_exact[jenkins(read_word)%100] != 1 &&
-                bloom_filter_exact[djb2(read_word)%100] != 1){
-                countex++;
-                printf("Word %s doesnt not exist\n",read_word);
-            
-            }else{
-
-            }
-
-            if(bloom_filter_hamming[jenkins(read_word)%100] != 1 &&
-                bloom_filter_hamming[djb2(read_word)%100] != 1){
-                counth++;
-                printf("Word %s doesnt not exist\n",read_word);
-            
-            }
+        //look in edit distance
+        for(int i=1;i<=3;i++){
+           lookup_entry_index(read_word,&ix,i,1);
         }
+        //look in hamming distance
+            for(int j=0; j<=28;j++){
+                if(hamming_root_table[j] != NULL){
+                    for(int i=1;i<=3;i++){
+                       lookup_entry_index(read_word,&hamming_root_table[j],i,2);
+                    }
+                }
+
+            }
+        //look in exact matching
+    
+        //lookup_exact(read_word,hash_tables_exact);
+
+
         read_word = strtok(NULL, " ");
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    printf("%d words skipped from overall\n",count);
-    printf("%d words skipped from edit\n",counte);
-    printf("%d words skipped from exact\n",countex);
-    printf("%d words skipped from ham\n",counth);
 }
 
 ErrorCode InitializeIndex(){
@@ -891,3 +900,5 @@ ErrorCode InitializeIndex(){
     return EC_SUCCESS;
     
 }
+
+
