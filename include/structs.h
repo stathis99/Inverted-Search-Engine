@@ -66,7 +66,7 @@ entry_list read_document(int* number);
 int edit_distance(const char* str1, const char* str2, int len1, int len2);
 int hamming_distance(const char* str1, const char* str2, int len);
 enum error_code build_entry_index_sort(const entry_list* el, enum match_type type, bk_index* ix);
-enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold,int match_type,result_node_bk** result_node_bk);
+enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold,int match_type);
 void print_bk_tree(bk_index ix,int pos);
 enum error_code destroy_entry_index(bk_index* ix);
 bk_index bk_create_node(bk_index* ix,word* entry_word,int weight, int queryId, int dist);
@@ -74,8 +74,7 @@ entry_list read_queries(int* number,FILE* fp);
 int count_documents(FILE* fp);
 entry_list* read_documents(int* number,FILE* fp,int number_of_documents);
 void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold);
-enum error_code look_for_threshold(struct Payload* payload,int threshold,const word* w,const word*, result_node_bk** r_node_bk ,bk_index temp);
-
+enum error_code look_for_threshold(struct Payload* payload,int threshold,const word* q_w,const word* w,int match_type ,bk_index temp);
 
 //new functions to create BK without sorting inner nodes
 int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* node, int queryId, int dist);
@@ -178,6 +177,7 @@ typedef struct Query{
 	unsigned int match_dist;
     struct Query* next;
     char words[5][32];
+    int query_words;
 }Query;
 
 typedef struct Query_Hash_Table{
@@ -187,5 +187,11 @@ typedef struct Query_Hash_Table{
 ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist);
 ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist);
 void print_query_list();
-void lookup_exact(const word* w,Hash_table_exact** hash_table_exact, result_node** head);
+void lookup_exact(const word* w,Hash_table_exact** hash_table_exact);
 void match_query(result_node* head);
+
+typedef struct query_ids{
+    QueryID queryID;
+    struct query_ids* next;
+}query_ids;
+

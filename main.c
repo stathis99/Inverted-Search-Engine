@@ -57,7 +57,14 @@ int main(int argc, char* argv[]){
 				printf("Corrupted Test File at Read Document.\n");
 				exit(-1);
 			}
-			ErrorCode err=MatchDocument(id, temp);
+			ErrorCode err = MatchDocument(id, temp);
+        }else if(ch == 'r'){
+            unsigned int num_res=0;
+			if(EOF==fscanf(fp, "%u ", &num_res)){
+				
+				return;
+			}
+            
         }
 		
     }
