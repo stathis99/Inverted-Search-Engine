@@ -249,17 +249,49 @@ bk_index bk_create_node(bk_index* ix,word* entry_word,int weight,int queryId, in
 }
 
 
-enum error_code look_for_threshold(struct Payload* payload,int threshold,const word* q_w,const word* w){
+enum error_code look_for_threshold(struct Payload* payload,int threshold,const word* q_w,const word* w, result_node_bk** head,bk_index temp){
     while(payload != NULL){
         if(payload->threshold == threshold){
-            printf("%s = %s q:%d t:%d \n",q_w,w,payload->queryId,payload->threshold);
+            //printf("%s = %s q:%d t:%d \n",q_w,w,payload->queryId,payload->threshold);
+            if (strcmp(temp->this_word,q_w) == 0){
+                            //printf("%s     ->\n\n",temp->this_word);
+                            if(*head == NULL){
+                                *head = malloc(sizeof(result_node_bk));
+                                (*head)->next = NULL;
+                                (*head)->this_entry = temp;                         
+                            }else{
+                                result_node_bk* current = *head;
+                                int found = -1;
+                                while(current != NULL){
+                                    if(strcmp(current->this_entry->this_word,q_w) == 0){
+                                        found = 1;
+                                        break;
+                                    }
+                                    current = current->next;
+                                }
+                                if(found == -1){
+                                    result_node_bk* new_node = malloc(sizeof(result_node_bk));
+                                    new_node->next = NULL;
+                                    new_node->this_entry = temp; 
+
+                                    result_node* second = (*head)->next;
+                                    (*head)->next = new_node;
+                                    new_node->next = second;                
+                                }
+                            }
+                            // Payload* temp_payload = temp->payload;
+                            // while(temp_payload != NULL){
+                            //     //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+                            //     temp_payload = temp_payload->next;
+                            // }                          
+                        }
         }
         payload = payload->next;
     }
 }
 
 
-enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold,int match_type){
+enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold,int match_type,result_node_bk** r_node_bk){
     bk_index temp_child  = (*ix)->child;
     int dist;
     if(match_type == 1){
@@ -276,7 +308,7 @@ enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold,in
         //create_entry((*ix)->this_word,&my_entry);
         //add_entry(result,&my_entry);
 
-        look_for_threshold((*ix)->payload,threshold,(*ix)->this_word,w);
+        look_for_threshold((*ix)->payload,threshold,(*ix)->this_word,w,r_node_bk,*ix);
 
     }
 
@@ -284,7 +316,7 @@ enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold,in
     while(temp_child != NULL){
         //if distance child from the parent is  [𝑑 − 𝑛, 𝑑 + 𝑛] then call retrospectively 
         if(temp_child->weight >= min_dist && temp_child->weight <= max_dist ){
-            lookup_entry_index(w,&temp_child,threshold,match_type);
+            lookup_entry_index(w,&temp_child,threshold,match_type,r_node_bk);
         }
         temp_child = temp_child->next;   
     }
@@ -875,18 +907,20 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
     int counth=0;
     int countex=0;
     result_node* r_node= NULL;
+    result_node_bk* r_node_bk = NULL;
+    result_node_bk* r_node_bk_edit = NULL;
 
     while(read_word != NULL){
 
         //look in edit distance
         for(int i=1;i<=3;i++){
-            //lookup_entry_index(read_word,&ix,i,1);
+            lookup_entry_index(read_word,&ix,i,1,&r_node_bk_edit);
         }
         //look in hamming distance
             int length_word = strlen(read_word)-1;
                 if(hamming_root_table[length_word] != NULL){
                     for(int i=1;i<=3;i++){
-                       //lookup_entry_index(read_word,&hamming_root_table[length_word],i,2);
+                       lookup_entry_index(read_word,&hamming_root_table[length_word],i,2,&r_node_bk);
                     }
                 }
 
@@ -897,17 +931,59 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
 
         read_word = strtok(NULL, " ");
     }
-    result_node* temp_node = r_node;
-    while(temp_node != NULL){
-        printf("%s ->",temp_node->this_entry->this_word);
-        Payload* temp_payload = temp_node->this_entry->payload;
+
+    printf("RESULTS FROM EXACT: \n\n");
+    result_node* temp_node1 = r_node;
+    while(temp_node1 != NULL){
+        printf("%s ->",temp_node1->this_entry->this_word);
+        Payload* temp_payload = temp_node1->this_entry->payload;
+        while(temp_payload != NULL){
+            printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+
+
+            Query* bucket = Q_Hash_Table[hash(temp_payload->queryId)];
+            while(bucket != NULL){
+                if(bucket->query_id == temp_payload->queryId){
+
+                }
+                bucket = bucket->next;
+            }
+
+            temp_payload = temp_payload->next;
+        }
+        //printf("\n");
+        temp_node1 = temp_node1->next;
+    }
+    
+    printf("RESULTS FROM Edit: \n\n");
+    result_node_bk* temp_node2 = r_node_bk_edit;
+    while(temp_node2 != NULL){
+        printf("%s ->",temp_node2->this_entry->this_word);
+        Payload* temp_payload = temp_node2->this_entry->payload;
         while(temp_payload != NULL){
             printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
             temp_payload = temp_payload->next;
         }
-        printf("\n");
-        temp_node = temp_node->next;
+        //printf("\n");
+        temp_node2 = temp_node2->next;
     }
+    
+    printf("RESULTS FROM hamming: \n\n");
+    result_node_bk* temp_node3 = r_node_bk;
+    while(temp_node3 != NULL){
+        printf("%s ->",temp_node3->this_entry->this_word);
+        Payload* temp_payload = temp_node3->this_entry->payload;
+        while(temp_payload != NULL){
+            printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+            temp_payload = temp_payload->next;
+        }
+        //printf("\n");
+        temp_node3 = temp_node3->next;
+    }
+
+
+
+
 }
 
 ErrorCode InitializeIndex(){
@@ -957,6 +1033,7 @@ ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, Ma
         //store data
         Q_Hash_Table->query_hash_buckets[bucket_num]->query_id = query_id;
         strcpy(Q_Hash_Table->query_hash_buckets[bucket_num]->str,query_str);
+        
         Q_Hash_Table->query_hash_buckets[bucket_num]->match_dist = match_dist;
         Q_Hash_Table->query_hash_buckets[bucket_num]->match_type = match_type;
 
@@ -982,7 +1059,7 @@ ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, Ma
 }
 
 ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
-
+    //printf(" %d \n",query_id);
     //add the query to the query hash table
     add_query(query_id%10,query_id,query_str, match_type, match_dist);
 

@@ -2,6 +2,7 @@
     "files.associations": {
         "string.h": "c",
         "structs.h": "c",
-        "time.h": "c"
+        "time.h": "c",
+        "random": "c"
     }
 }

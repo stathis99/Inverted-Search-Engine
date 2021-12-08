@@ -58,13 +58,10 @@ int main(int argc, char* argv[]){
 				exit(-1);
 			}
 			ErrorCode err=MatchDocument(id, temp);
-        }else{
-            break;
         }
 		
     }
     //printf("\nEdit Distance Evretitio\n");
-    //print_bk_tree(ix,0);
 
     // printf("\nHamming Distance Evretirio\n");
     // for(int i=0; i<=28;i++){
