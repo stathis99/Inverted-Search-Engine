@@ -1062,7 +1062,55 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                     if(to_find == 0){
                         printf("Query %d fully matched\n", temp_payload->queryId);
                         querys_matched;
+                        if(queries_head == NULL){       //first query, insert it at head
+                            queries_head = malloc(sizeof(query_ids));
+                            queries_head->next = NULL;
+                            queries_head->queryID = temp_payload->queryId;
+                        }else{                          //find correct position to sort
+                            query_ids* temp = queries_head;
+                            query_ids* previous;
+                            int inserted = -1;
+                            while(temp != NULL){
+                                if(temp_payload->queryId < temp->queryID){      //insert it here
+                                    
+                                    if(temp == queries_head){
+                                        query_ids* new_node = malloc(sizeof(query_ids));
+                                        new_node->queryID = temp_payload->queryId;
+
+                                        query_ids* previous_head = queries_head;
+                                        queries_head = new_node;
+                                        new_node->next = previous_head;
+                                        inserted = 1;
+                                        break;
+                                    }else{
+                                        printf("%d < %d with previous %d\n",temp_payload->queryId,temp->queryID,previous->queryID);
+                                        query_ids* new_node = malloc(sizeof(query_ids));
+                                    
+                                        new_node->queryID = temp_payload->queryId;
+                                        
+                                        query_ids* previous_next = previous->next;
+                                        
+                                        previous->next = new_node;
+                                        new_node->next = previous_next;
+                                        inserted = 1;
+                                        break;                                        
+                                    }
+                                }
+                                previous = temp;
+                                temp = temp->next;
+                                //continue
+                            }
+                            //iterate through and is bigger than everything
+                            //add to the end
+                            if(inserted == -1){
+                                temp = malloc(sizeof(query_ids));
+                                temp->next = NULL;
+                                temp->queryID = temp_payload->queryId;
+                                previous->next = temp;
+                            }
+                        }
                     }
+                    
                 }
                 bucket = bucket->next;
             }
@@ -1097,6 +1145,54 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                     if(to_find == 0){
                         printf("Query %d fully matched\n", temp_payload->queryId);
                         querys_matched;
+                        if(queries_head == NULL){       //first query, insert it at head
+                            queries_head = malloc(sizeof(query_ids));
+                            queries_head->next = NULL;
+                            queries_head->queryID = temp_payload->queryId;
+                        }else{                          //find correct position to sort
+                            query_ids* temp = queries_head;
+                            query_ids* previous;
+                            int inserted = -1;
+                            while(temp != NULL){
+                                if(temp_payload->queryId < temp->queryID){      //insert it here
+                                    
+                                    if(temp == queries_head){
+                                        query_ids* new_node = malloc(sizeof(query_ids));
+                                        new_node->queryID = temp_payload->queryId;
+
+                                        query_ids* previous_head = queries_head;
+                                        queries_head = new_node;
+                                        new_node->next = previous_head;
+                                        inserted = 1;
+                                        break;
+                                    }else{
+                                        printf("%d < %d with previous %d\n",temp_payload->queryId,temp->queryID,previous->queryID);
+                                        query_ids* new_node = malloc(sizeof(query_ids));
+                                    
+                                        new_node->queryID = temp_payload->queryId;
+                                        
+                                        query_ids* previous_next = previous->next;
+                                        
+                                        previous->next = new_node;
+                                        new_node->next = previous_next;
+                                        inserted = 1;
+                                        break;                                        
+                                    }
+                                }
+                                previous = temp;
+                                temp = temp->next;
+                                //continue
+                            }
+                            //iterate through and is bigger than everything
+                            //add to the end
+                            if(inserted == -1){
+                                temp = malloc(sizeof(query_ids));
+                                temp->next = NULL;
+                                temp->queryID = temp_payload->queryId;
+                                previous->next = temp;
+                            }
+                        }
+                    
                     }
                 }
                 bucket = bucket->next;
