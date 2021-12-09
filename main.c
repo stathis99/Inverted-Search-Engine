@@ -20,6 +20,7 @@ int main(int argc, char* argv[]){
     }
 
     FILE* fp = fopen("./files/queries.txt","r");
+    //FILE* fp = fopen("./files/small_test.txt","r");
     if(fp == NULL){
         printf("Couldnt open file.\n");
         exit(-1);
@@ -57,7 +58,7 @@ int main(int argc, char* argv[]){
 				printf("Corrupted Test File at Read Document.\n");
 				exit(-1);
 			}
-			//ErrorCode err = MatchDocument(id, temp);
+			ErrorCode err = MatchDocument(id, temp);
         }else if(ch == 'r'){
             unsigned int num_res=0;
 			if(EOF==fscanf(fp, "%u ", &num_res)){
@@ -68,35 +69,6 @@ int main(int argc, char* argv[]){
         }
 		
     }
-    //printf("\nEdit Distance Evretitio\n");
-
-    // printf("\nHamming Distance Evretirio\n");
-    // for(int i=0; i<=28;i++){
-    //     if(hamming_root_table[i] != NULL){
-    //          printf("\n\nbk tree of length word %d\n",i+1);
-    //         print_bk_tree(hamming_root_table[i],0);
-    //     }
-
-    // }
-
-
-    //printing of each struct follows
-    //print_hash_table_exact(hash_tables_exact);
-
-    //print_hash_tables(hash_tables_edit);
-
-    // print_hash_tables(hash_tables_hamming);
-
-
-    //Edit distance structures free'd
-    //delete_hash_tables_edit(hash_tables_edit);
-    //destroy_entry_index(&ix);
-
-    //Hamming distance structures free'd
-    //delete_hash_tables_hamming(hash_tables_hamming,hamming_root_table);
-
-    //Exact match structure free'd
-    // delete_hash_tables_exact(hash_tables_exact);
 
     //close input file
     fclose(fp);

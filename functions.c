@@ -464,7 +464,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
     read_word = strtok(temp_temp, " ");
     while(read_word != NULL){
         int len = strlen(read_word);
-        printf("%s %d %d %d \n",read_word ,queryId, dist, type );
+        //printf("%s %d %d %d \n",read_word ,queryId, dist, type );
 
         int word_hash_value1 = jenkins(read_word)%100;
         int word_hash_value2 = djb2(read_word)%100;
@@ -481,6 +481,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
             for(int i=0 ; i<= 9 ;i++){
                 hash_table[len-1]->hash_buckets[i] = NULL;
             }
+
             //hash word to find bucket
             hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
@@ -530,7 +531,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
                     current = current->next;
                 }
                 if(found == -1){                // it was not found, we shall add it and add it to the list of buckets
-                    word* my_word= malloc(strlen(read_word)+1);
+                    word* my_word = malloc(strlen(read_word)+1);
                     strcpy(my_word,read_word);
 
                     bk_index node = NULL;
@@ -600,6 +601,7 @@ void delete_hash_tables_edit(){
         }
     }
     free(hash_tables_edit);
+    destroy_entry_index(&ix);
 }
 
 unsigned int djb2(const void *_str) {
@@ -1338,8 +1340,28 @@ ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, Ma
 ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
     //printf(" %d \n",query_id);
     //add the query to the query hash table
+
+    //free result lists
+    while(r_node != NULL){
+        result_node* temp = r_node; 
+        r_node = r_node->next;
+        free(temp);
+    }
+
+    while(r_node_bk_edit != NULL){
+        result_node_bk* temp = r_node_bk_edit; 
+        r_node_bk_edit = r_node_bk_edit->next;
+        free(temp);
+    }
+
+    while(r_node_bk_hamming != NULL){
+        result_node_bk* temp = r_node_bk_hamming; 
+        r_node_bk_hamming = r_node_bk_hamming->next;
+        free(temp);
+    }
+
     add_query(query_id%10,query_id,query_str, match_type, match_dist);
-printf("---%s\n",query_str);
+
     //update appropriate data structures
     if(match_type == 0){
         deduplicate_exact_matching(query_str, query_id, match_dist, match_type, hash_tables_exact);
@@ -1389,4 +1411,30 @@ ErrorCode DestroyIndex(){
     }
     free(Q_Hash_Table->query_hash_buckets);
     free(Q_Hash_Table);
+
+    //free result lists
+    while(r_node != NULL){
+        result_node* temp = r_node; 
+        r_node = r_node->next;
+        free(temp);
+    }
+
+    while(r_node_bk_edit != NULL){
+        result_node_bk* temp = r_node_bk_edit; 
+        r_node_bk_edit = r_node_bk_edit->next;
+        free(temp);
+    }
+
+    while(r_node_bk_hamming != NULL){
+        result_node_bk* temp = r_node_bk_hamming; 
+        r_node_bk_hamming = r_node_bk_hamming->next;
+        free(temp);
+    }
+
+    query_ids* temp = queries_head;
+    while(queries_head != NULL){
+        temp = queries_head;
+        queries_head = queries_head->next;
+        free(temp);
+    }
 }
