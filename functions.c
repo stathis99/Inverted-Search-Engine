@@ -464,7 +464,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
     read_word = strtok(temp_temp, " ");
     while(read_word != NULL){
         int len = strlen(read_word);
-        //printf("%s %d %d %d \n",read_word ,queryId, dist, type );
+        printf("%s %d %d %d \n",read_word ,queryId, dist, type );
 
         int word_hash_value1 = jenkins(read_word)%100;
         int word_hash_value2 = djb2(read_word)%100;
@@ -582,24 +582,24 @@ void print_hash_tables(Hash_table** hash_table){
     }
 }
 
-void delete_hash_tables_edit(Hash_table** hash_tables){
+void delete_hash_tables_edit(){
     for(int i=0; i <= 28; i++){
         //if this hash table has been allocated, free it; else move on
-        if(hash_tables[i] != NULL){
+        if(hash_tables_edit[i] != NULL){
             for(int j=0; j <= 9; j++){
                 //Hash_Bucket* current = hash_tables[i]->hash_buckets[j];
                     Hash_Bucket* temp ; 
-                    while(hash_tables[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
-                        temp = hash_tables[i]->hash_buckets[j];
-                        hash_tables[i]->hash_buckets[j] = hash_tables[i]->hash_buckets[j]->next;
+                    while(hash_tables_edit[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
+                        temp = hash_tables_edit[i]->hash_buckets[j];
+                        hash_tables_edit[i]->hash_buckets[j] = hash_tables_edit[i]->hash_buckets[j]->next;
                         free(temp); 
                     }
             }
-            free(hash_tables[i]->hash_buckets);
-            free(hash_tables[i]);
+            free(hash_tables_edit[i]->hash_buckets);
+            free(hash_tables_edit[i]);
         }
     }
-    free(hash_tables);
+    free(hash_tables_edit);
 }
 
 unsigned int djb2(const void *_str) {
@@ -830,22 +830,22 @@ void print_hash_table_exact(Hash_table_exact** hash_table_exact){
     }
 }
 
-void delete_hash_tables_hamming(Hash_table** hash_tables, bk_index* hamming_root_table){
+void delete_hash_tables_hamming(){
     
     for(int i=0; i <= 28; i++){
         //if this hash table has been allocated, free it; else move on
-        if(hash_tables[i] != NULL){
+        if(hash_tables_hamming[i] != NULL){
             for(int j=0; j <= 9; j++){
                 //free the hash_table itself
                 Hash_Bucket* temp ; 
-                while(hash_tables[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
-                    temp = hash_tables[i]->hash_buckets[j];
-                    hash_tables[i]->hash_buckets[j] = hash_tables[i]->hash_buckets[j]->next;
+                while(hash_tables_hamming[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
+                    temp = hash_tables_hamming[i]->hash_buckets[j];
+                    hash_tables_hamming[i]->hash_buckets[j] = hash_tables_hamming[i]->hash_buckets[j]->next;
                     free(temp); 
                 }
             }
-            free(hash_tables[i]->hash_buckets);
-            free(hash_tables[i]);
+            free(hash_tables_hamming[i]->hash_buckets);
+            free(hash_tables_hamming[i]);
 
             //if hash table has been initialized then we have at least a root for a bk of this length
             //free the bk trees starting from their roots
@@ -854,11 +854,11 @@ void delete_hash_tables_hamming(Hash_table** hash_tables, bk_index* hamming_root
     }
 
     //finally, free both arrays
-    free(hash_tables);
+    free(hash_tables_hamming);
     free(hamming_root_table);
 }
 
-void delete_hash_tables_exact(Hash_table_exact** hash_tables_exact){
+void delete_hash_tables_exact(){
     for(int i=0; i <= 28; i++){
         //if this hash table has been allocated, free it; else move on
         if(hash_tables_exact[i] != NULL){
@@ -958,10 +958,21 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
 
     printf("RESULTS FROM EXACT: \n\n");
     result_node* temp_node1 = r_node;
+
     while(temp_node1 != NULL){
         //printf("%s ->",temp_node1->this_entry->this_word);
         Payload* temp_payload = temp_node1->this_entry->payload;
         while(temp_payload != NULL){
+            //before checking payload, check that this query hasnt been matched yet
+            query_ids* temp_queries_head = queries_head;
+            int matched = 0;
+            while(temp_queries_head != NULL){
+                if(temp_queries_head->queryID == temp_payload->queryId){
+                    matched = 1;
+                }
+                temp_queries_head = temp_queries_head->next;
+            }
+            if(matched == 0){
             //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
             Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%10];
             while(bucket != NULL){
@@ -1001,7 +1012,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                                         inserted = 1;
                                         break;
                                     }else{
-                                        printf("%d < %d with previous %d\n",temp_payload->queryId,temp->queryID,previous->queryID);
+
                                         query_ids* new_node = malloc(sizeof(query_ids));
                                     
                                         new_node->queryID = temp_payload->queryId;
@@ -1031,7 +1042,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                 }
                 bucket = bucket->next;
             }
-
+            }
             temp_payload = temp_payload->next;
         }
         //printf("\n");
@@ -1044,7 +1055,17 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         printf("%s ->",temp_node2->this_entry->this_word);
         Payload* temp_payload = temp_node2->this_entry->payload;
         while(temp_payload != NULL){
-            printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+            //before checking payload, check that this query hasnt been matched yet
+            query_ids* temp_queries_head = queries_head;
+            int matched = 0;
+            while(temp_queries_head != NULL){
+                if(temp_queries_head->queryID == temp_payload->queryId){
+                    matched = 1;
+                }
+                temp_queries_head = temp_queries_head->next;
+            }
+            if(matched == 0){
+            //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
             Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%10];
             while(bucket != NULL){
                 if(bucket->query_id == temp_payload->queryId){      //query has been found
@@ -1083,7 +1104,6 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                                         inserted = 1;
                                         break;
                                     }else{
-                                        printf("%d < %d with previous %d\n",temp_payload->queryId,temp->queryID,previous->queryID);
                                         query_ids* new_node = malloc(sizeof(query_ids));
                                     
                                         new_node->queryID = temp_payload->queryId;
@@ -1114,6 +1134,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                 }
                 bucket = bucket->next;
             }
+            }
             temp_payload = temp_payload->next;
         }
         //printf("\n");
@@ -1126,7 +1147,16 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         //printf("%s ->",temp_node3->this_entry->this_word);
         Payload* temp_payload = temp_node3->this_entry->payload;
         while(temp_payload != NULL){
-            //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+            //before checking payload, check that this query hasnt been matched yet
+            query_ids* temp_queries_head = queries_head;
+            int matched = 0;
+            while(temp_queries_head != NULL){
+                if(temp_queries_head->queryID == temp_payload->queryId){
+                    matched = 1;
+                }
+                temp_queries_head = temp_queries_head->next;
+            }
+            if(matched == 0){//printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
 
             Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%10];
             while(bucket != NULL){
@@ -1166,7 +1196,6 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                                         inserted = 1;
                                         break;
                                     }else{
-                                        printf("%d < %d with previous %d\n",temp_payload->queryId,temp->queryID,previous->queryID);
                                         query_ids* new_node = malloc(sizeof(query_ids));
                                     
                                         new_node->queryID = temp_payload->queryId;
@@ -1197,7 +1226,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                 }
                 bucket = bucket->next;
             }
-
+            }
             temp_payload = temp_payload->next;
         }
         //printf("\n");
@@ -1261,8 +1290,9 @@ ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, Ma
         Q_Hash_Table->query_hash_buckets[bucket_num]->query_id = query_id;
         strcpy(Q_Hash_Table->query_hash_buckets[bucket_num]->str,query_str);
         
-        char* temp_temp = (char*)query_str; 
-        char* read_word = strtok(temp_temp, " ");
+        char temp_query_str[MAX_QUERY_LENGTH];
+        strcpy(temp_query_str,query_str);
+        char* read_word = strtok(temp_query_str, " ");
         int num = 0;
         while(read_word != NULL){
             strcpy(Q_Hash_Table->query_hash_buckets[bucket_num]->words[num],read_word);
@@ -1286,8 +1316,9 @@ ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, Ma
         bucket->match_dist = match_dist;
         bucket->match_type = match_type;
 
-        char* temp_temp = (char*)query_str; 
-        char* read_word = strtok(temp_temp, " ");
+        char temp_query_str[MAX_QUERY_LENGTH];
+        strcpy(temp_query_str,query_str); 
+        char* read_word = strtok(temp_query_str, " ");
         int num = 0;
         while(read_word != NULL){
             strcpy(bucket->words[num],read_word);
@@ -1308,7 +1339,7 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
     //printf(" %d \n",query_id);
     //add the query to the query hash table
     add_query(query_id%10,query_id,query_str, match_type, match_dist);
-
+printf("---%s\n",query_str);
     //update appropriate data structures
     if(match_type == 0){
         deduplicate_exact_matching(query_str, query_id, match_dist, match_type, hash_tables_exact);
@@ -1338,4 +1369,24 @@ void print_query_list(){
 
 void match_query(result_node* head){
 
+}
+
+ErrorCode DestroyIndex(){
+    delete_hash_tables_edit();
+    delete_hash_tables_hamming();
+    delete_hash_tables_exact();
+
+    for(int i=0; i<= 9; i++){
+        if( Q_Hash_Table->query_hash_buckets[i] != NULL){
+            //free all buckets from the list here
+            Query* bucket = Q_Hash_Table->query_hash_buckets[i];
+            while(Q_Hash_Table->query_hash_buckets[i] != NULL){
+                bucket = Q_Hash_Table->query_hash_buckets[i];
+                Q_Hash_Table->query_hash_buckets[i] =  Q_Hash_Table->query_hash_buckets[i]->next;
+                free(bucket);
+            }
+        }
+    }
+    free(Q_Hash_Table->query_hash_buckets);
+    free(Q_Hash_Table);
 }

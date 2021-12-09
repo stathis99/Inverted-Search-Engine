@@ -57,7 +57,7 @@ int main(int argc, char* argv[]){
 				printf("Corrupted Test File at Read Document.\n");
 				exit(-1);
 			}
-			ErrorCode err = MatchDocument(id, temp);
+			//ErrorCode err = MatchDocument(id, temp);
         }else if(ch == 'r'){
             unsigned int num_res=0;
 			if(EOF==fscanf(fp, "%u ", &num_res)){
@@ -104,7 +104,7 @@ int main(int argc, char* argv[]){
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
     printf("The elapsed time is %f seconds\n", time_spent);
-
+    DestroyIndex();
    // if(argc != 3){
    //    printf("Invalid number of arguments given\n");
    //    exit(-1);
