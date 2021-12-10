@@ -960,8 +960,8 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
 
     printf("RESULTS FROM EXACT: \n\n");
     result_node* temp_node1 = r_node;
-
     while(temp_node1 != NULL){
+
         //printf("%s ->",temp_node1->this_entry->this_word);
         Payload* temp_payload = temp_node1->this_entry->payload;
         while(temp_payload != NULL){
@@ -975,7 +975,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                 temp_queries_head = temp_queries_head->next;
             }
             if(matched == 0){
-            //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+            printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
             Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%10];
             while(bucket != NULL){
                 if(bucket->query_id == temp_payload->queryId){      //query has been found
@@ -1067,13 +1067,15 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                 temp_queries_head = temp_queries_head->next;
             }
             if(matched == 0){
+
             //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
             Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%10];
             while(bucket != NULL){
                 if(bucket->query_id == temp_payload->queryId){      //query has been found
                     int to_find = bucket->query_words;              //we have to find this many words
+                    //printf(" %d ",to_find);
                     for(int i=0; i<bucket->query_words; i++){
-                        result_node* temp_list = r_node;
+                        result_node_bk* temp_list = r_node_bk_edit;
                         while(temp_list != NULL){
                             if(strcmp(bucket->words[i],temp_list->this_entry->this_word) == 0){
                                 to_find--;
@@ -1241,7 +1243,8 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         printf("%d ->",current->queryID);
         current = current->next;
     }
-
+printf("\n\n");
+print_bk_tree(ix,0);
 }
 
 ErrorCode InitializeIndex(){

@@ -63,7 +63,7 @@ int main(int argc, char* argv[]){
             unsigned int num_res=0;
 			if(EOF==fscanf(fp, "%u ", &num_res)){
 				
-				return;
+				return 1;
 			}
             
         }
