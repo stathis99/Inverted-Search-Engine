@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#define QUERY_HASH_BUCKETS 100
+
 typedef char word;
 
 typedef struct Payload{
@@ -200,3 +202,4 @@ typedef struct query_ids{
 
 ErrorCode EndQuery(QueryID query_id);
 
+void print_query_hash_buckets();

@@ -809,6 +809,14 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
 
 }
 
+void print_query_hash_buckets(){
+    for(int i=0; i<= QUERY_HASH_BUCKETS-1 ; i++){
+        if(Q_Hash_Table->query_hash_buckets[i] == NULL){
+            printf("buckets for  %d are null\n",i);
+        }
+    }
+}
+
 void print_hash_table_exact(Hash_table_exact** hash_table_exact){
     for(int i=0; i<=28; i++){
         if(hash_table_exact[i] != NULL){
@@ -1014,7 +1022,7 @@ queries_head = NULL;
             }
             if(matched == 0){
             //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
-            Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%10];
+            Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%QUERY_HASH_BUCKETS];
             while(bucket != NULL){
                 if(bucket->query_id == temp_payload->queryId){      //query has been found
                     int to_find = bucket->query_words;              //we have to find this many words
@@ -1107,7 +1115,7 @@ queries_head = NULL;
             if(matched == 0){
 
             //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
-            Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%10];
+            Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%QUERY_HASH_BUCKETS];
             while(bucket != NULL){
                 if(bucket->query_id == temp_payload->queryId){      //query has been found
                     int to_find = bucket->query_words;              //we have to find this many words
@@ -1200,7 +1208,7 @@ queries_head = NULL;
             }
             if(matched == 0){//printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
 
-            Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%10];
+            Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%QUERY_HASH_BUCKETS];
             while(bucket != NULL){
                 if(bucket->query_id == temp_payload->queryId){      //query has been found
                     int to_find = bucket->query_words;              //we have to find this many words
@@ -1275,13 +1283,13 @@ queries_head = NULL;
         temp_node3 = temp_node3->next;
     }
 
-    //print sorted query_ids list
-    query_ids* current = queries_head;
-    while(current != NULL){
-        printf("%d ->",current->queryID);
-        current = current->next;
-    }
-printf("\n");
+//     //print sorted query_ids list
+//     query_ids* current = queries_head;
+//     while(current != NULL){
+//         printf("%d ->",current->queryID);
+//         current = current->next;
+//     }
+// printf("\n");
 //print_bk_tree(ix,0);
 }
 
@@ -1292,8 +1300,8 @@ ErrorCode InitializeIndex(){
     }
 
     Q_Hash_Table = malloc(sizeof(Query_Hash_Table));
-    Q_Hash_Table->query_hash_buckets = malloc(sizeof(Query*)*10);
-    for(int i=0; i<= 9; i++){
+    Q_Hash_Table->query_hash_buckets = malloc(sizeof(Query*)*QUERY_HASH_BUCKETS);
+    for(int i=0; i<= QUERY_HASH_BUCKETS-1; i++){
         Q_Hash_Table->query_hash_buckets[i] = NULL;
     }
 
@@ -1401,7 +1409,7 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
         free(temp);
     }
 
-    add_query(query_id%10,query_id,query_str, match_type, match_dist);
+    add_query(query_id%QUERY_HASH_BUCKETS,query_id,query_str, match_type, match_dist);
 
     //update appropriate data structures
     if(match_type == 0){
@@ -1439,7 +1447,7 @@ ErrorCode DestroyIndex(){
     delete_hash_tables_hamming();
     delete_hash_tables_exact();
 
-    for(int i=0; i<= 9; i++){
+    for(int i=0; i<= QUERY_HASH_BUCKETS-1; i++){
         if( Q_Hash_Table->query_hash_buckets[i] != NULL){
             //free all buckets from the list here
             Query* bucket = Q_Hash_Table->query_hash_buckets[i];
@@ -1480,20 +1488,27 @@ ErrorCode DestroyIndex(){
     }
 }
 
-ErrorCode EndQuery(QueryID query_id)
-{
+ErrorCode EndQuery(QueryID query_id){
 	// Remove this query from the active query set
-    //printf("%d\n",query_id);
-    Query* bucket = Q_Hash_Table->query_hash_buckets[query_id%10];
+
+    Query* bucket = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
+    //we are freeing the first bucket
+    if(bucket != NULL && bucket->query_id == query_id){
+        Query* temp = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
+        Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS] = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS]->next;
+        free(temp);
+        return EC_SUCCESS;
+    }
+
     Query* bucket_prev = bucket;
     while(bucket != NULL){
         if(bucket->query_id == query_id){
-
-            bucket_prev ->next = bucket ->next;
+            bucket_prev->next = bucket->next;
             free(bucket);
+            return EC_SUCCESS;
         }
         bucket_prev = bucket;
-        bucket = bucket ->next;
+        bucket = bucket->next;
     }
 	return EC_SUCCESS;
 }

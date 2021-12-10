@@ -19,7 +19,7 @@ int main(int argc, char* argv[]){
         exit(-1);
     }
 
-    FILE* fp = fopen("./files/queries.txt","r");
+    FILE* fp = fopen("./files/small_test.txt","r");
     //FILE* fp = fopen("./files/small_test.txt","r");
     if(fp == NULL){
         printf("Couldnt open file.\n");
@@ -58,15 +58,15 @@ int main(int argc, char* argv[]){
 				printf("Corrupted Test File at Read Document.\n");
 				exit(-1);
 			}
-			ErrorCode err = MatchDocument(id, temp);
+		    ErrorCode err = MatchDocument(id, temp);
         }else if(ch == 'r'){
             unsigned int num_res=0;
 			if(EOF==fscanf(fp, "%d ", &num_res)){
                 return 1;
 		}
 
-            int qid;
-            printf("correct results :\n");
+            /*int qid;
+            printf("correct results for document %d:\n",id);
 			for(int i=0;i<(int)num_res;i++)
 			{
 				if(EOF==fscanf(fp, "%u ", &qid))
@@ -78,7 +78,7 @@ int main(int argc, char* argv[]){
 				
                 printf("%d ->", qid);
 			}
-            printf("\n\n");
+            printf("\n\n");*/
 
         }else if(ch=='e')
 		{
@@ -98,7 +98,7 @@ int main(int argc, char* argv[]){
 			}
 		}
     }
-
+print_query_hash_buckets();
     //close input file
     fclose(fp);
 
