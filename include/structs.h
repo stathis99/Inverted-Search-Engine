@@ -1,6 +1,11 @@
 #include <stdio.h>
+#include <strings.h>
+#include <string.h>
+#include <stdint.h>
 
 #define QUERY_HASH_BUCKETS 100
+#define BLOOM_FILTER_SIZE 500
+#define EDIT_HASH_BUCKETS 100
 
 typedef char word;
 
@@ -157,7 +162,8 @@ typedef struct Hash_table_exact{
     entry* hash_buckets;
 }Hash_table_exact;
 
-void deduplicate_edit_distance(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* ix);
+void deduplicate_edit_distance(const char* temp, unsigned int , int , int, bk_index* ix);
+void deduplicate_edit_distance2(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* ix);
 void deduplicate_exact_matching(const char* temp, unsigned int , int , int, Hash_table_exact** hash_table_exact);
 void deduplicate_hamming(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* hamming_root_table);
 enum error_code add_entry_no_list(entry first, const entry new_entry);
@@ -203,3 +209,5 @@ typedef struct query_ids{
 ErrorCode EndQuery(QueryID query_id);
 
 void print_query_hash_buckets();
+int strlen_my();
+uint32_t gatopeich_strlen32(const char* str);

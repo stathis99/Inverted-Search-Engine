@@ -3,12 +3,13 @@
 #include <string.h>
 
 //global structs we are using
-int bloom_filter_exact[100];
+int bloom_filter_exact[BLOOM_FILTER_SIZE];
 
 Query_Hash_Table* Q_Hash_Table;
 
 bk_index ix;
-Hash_table** hash_tables_edit;
+//Hash_table** hash_tables_edit;
+Hash_table* hash_tables_edit;
 
 bk_index* hamming_root_table;
 Hash_table** hash_tables_hamming;
@@ -456,9 +457,69 @@ void add_payload(struct Payload* payload,int queryId, int dist){
     payload->next = new_payload;
 }
 
+void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist, int type, bk_index* ix){
+    char* read_word;
+    char* temp_temp = (char*)temp; 
+    read_word = strtok(temp_temp, " ");
+    while(read_word != NULL){
+        int len = strlen(read_word);
 
+        int word_hash_value = djb2(read_word)%EDIT_HASH_BUCKETS;
+        
+        if(hash_tables_edit->hash_buckets[word_hash_value] == NULL){
+            //first word here, add it
+            hash_tables_edit->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
+            hash_tables_edit->hash_buckets[word_hash_value]->next = NULL;
+            if((*ix) == NULL){                  //bk root hasnt been initialized
+                 word* my_word = malloc(len+1);
+                 strcpy(my_word,read_word);
 
-void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist, int type, Hash_table** hash_table, bk_index* ix){
+                 bk_create_node(ix,my_word,0,queryId,dist);
+                 hash_tables_edit->hash_buckets[word_hash_value]->node = *ix;
+
+            }else{
+                word* my_word = malloc(len+1);
+                strcpy(my_word,read_word);
+
+                bk_index node = NULL;
+                bk_add_node(ix, my_word, 1, &node, queryId,dist);
+                hash_tables_edit->hash_buckets[word_hash_value]->node = node;
+            }
+        }else{
+            Hash_Bucket* current = hash_tables_edit->hash_buckets[word_hash_value];
+            int found = -1;
+            while (current != NULL){
+                if(strcmp(current->node->this_word,read_word) == 0){       //does the word exist
+                    found = 1;
+                    //printf("I found word %s again\n",read_word);
+                    add_payload(current->node->payload,queryId,dist);
+                    break;
+                }
+                current = current->next;
+            }
+            if(found == -1){                // it was not found, we shall add it and add it to the list of buckets
+                word* my_word = malloc(len+1);
+                strcpy(my_word,read_word);
+
+                bk_index node = NULL;
+                bk_add_node(ix, my_word, 1, &node,queryId,dist);
+                //create this hash_bucket to store data
+                Hash_Bucket* new_bucket = malloc(sizeof(Hash_Bucket));
+                new_bucket->node = node;
+                new_bucket->next = NULL;
+
+                //append it to the head
+                Hash_Bucket* previous_first = hash_tables_edit->hash_buckets[word_hash_value];
+                //first bucket is now the new one
+                hash_tables_edit->hash_buckets[word_hash_value] = new_bucket;
+                new_bucket->next = previous_first;
+            }
+        }
+        read_word = strtok(NULL, " ");
+    }
+}
+
+/*void deduplicate_edit_distance2(const char* temp, unsigned int queryId, int dist, int type, Hash_table** hash_table, bk_index* ix){
     char* read_word;
     char* temp_temp = (char*)temp; 
     read_word = strtok(temp_temp, " ");
@@ -466,16 +527,13 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
         int len = strlen(read_word);
         //printf("%s %d %d %d \n",read_word ,queryId, dist, type );
 
-        int word_hash_value1 = jenkins(read_word)%100;
-        int word_hash_value2 = djb2(read_word)%100;
-
         int word_hash_value = hash(read_word)%10;
         //printf("Word %s hashes to %d\n",read_word,word_hash_value);
-        if(hash_table[len-1] == NULL){
+        if(hash_table == NULL){
 
             //initialize hashtable 
-            hash_table[len-1] = malloc(sizeof(Hash_table));
-            hash_table[len-1]->hash_buckets = malloc(sizeof(Hash_Bucket*)*10);
+        hash_table = malloc(sizeof(Hash_table));    
+            hash_table->hash_buckets = malloc(sizeof(Hash_Bucket*)*10);
             
             //initialize hash buckets
             for(int i=0 ; i<= 9 ;i++){
@@ -486,7 +544,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
             hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
             if((*ix) == NULL){                  //bk root hasnt been initialized
-                word* my_word= malloc(strlen(read_word)+1);
+                word* my_word= malloc(len + 1);
                 strcpy(my_word,read_word);
 
                 bk_create_node(ix,my_word,0,queryId,dist);
@@ -494,7 +552,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
 
             }else{
-                word* my_word= malloc(strlen(read_word)+1);
+                word* my_word= malloc(len + 1);
                 strcpy(my_word,read_word);
 
                 bk_index node = NULL;
@@ -502,7 +560,6 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
                 hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }
-            
 
         }else{              //this hash table has been initialized
         
@@ -512,7 +569,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
                 //first word for this bucket, create the bucket
                 hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
-                word* my_word= malloc(strlen(read_word)+1);
+                word* my_word= malloc(len + 1);
                 strcpy(my_word,read_word);
 
                 bk_index node = NULL;
@@ -531,7 +588,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
                     current = current->next;
                 }
                 if(found == -1){                // it was not found, we shall add it and add it to the list of buckets
-                    word* my_word = malloc(strlen(read_word)+1);
+                    word* my_word = malloc(len + 1);
                     strcpy(my_word,read_word);
 
                     bk_index node = NULL;
@@ -554,7 +611,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
         read_word = strtok(NULL, " ");
     }
 
-}
+}*/
 
 unsigned long hash(unsigned char *str){
     unsigned long hash = 5381;
@@ -584,23 +641,22 @@ void print_hash_tables(Hash_table** hash_table){
 }
 
 void delete_hash_tables_edit(){
-    for(int i=0; i <= 28; i++){
+
         //if this hash table has been allocated, free it; else move on
-        if(hash_tables_edit[i] != NULL){
-            for(int j=0; j <= 9; j++){
+        if(hash_tables_edit != NULL){
+            for(int j=0; j < EDIT_HASH_BUCKETS; j++){
                 //Hash_Bucket* current = hash_tables[i]->hash_buckets[j];
                     Hash_Bucket* temp ; 
-                    while(hash_tables_edit[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
-                        temp = hash_tables_edit[i]->hash_buckets[j];
-                        hash_tables_edit[i]->hash_buckets[j] = hash_tables_edit[i]->hash_buckets[j]->next;
+                    while(hash_tables_edit->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
+                        temp = hash_tables_edit->hash_buckets[j];
+                        hash_tables_edit->hash_buckets[j] = hash_tables_edit->hash_buckets[j]->next;
                         free(temp); 
                     }
             }
-            free(hash_tables_edit[i]->hash_buckets);
-            free(hash_tables_edit[i]);
+            free(hash_tables_edit->hash_buckets);
+            free(hash_tables_edit);
         }
-    }
-    free(hash_tables_edit);
+
     destroy_entry_index(&ix);
 }
 
@@ -640,11 +696,8 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
         int len = strlen(read_word);
         //printf("%s %d %d %d \n",read_word ,queryId, dist, type );
 
-        int word_hash_value1 = jenkins(read_word)%100;
-        int word_hash_value2 = djb2(read_word)%100;
-
-        bloom_filter_exact[word_hash_value1] = 1;
-        bloom_filter_exact[word_hash_value2] = 1;
+        bloom_filter_exact[djb2(read_word)%BLOOM_FILTER_SIZE] = 1;
+        bloom_filter_exact[jenkins(read_word)%BLOOM_FILTER_SIZE] = 1;
 
 
         int word_hash_value = hash(read_word)%10;
@@ -660,7 +713,7 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
             for(int i=0 ; i<= 9 ;i++){
                 hash_table_exact[len-1]->hash_buckets[i] = NULL;
             }
-            word* my_word= malloc(strlen(read_word)+1);
+            word* my_word= malloc(len + 1);
             strcpy(my_word,read_word);
 
             create_entry(my_word,&hash_table_exact[len-1]->hash_buckets[word_hash_value],queryId,dist);
@@ -671,7 +724,7 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
             entry current = hash_table_exact[len-1]->hash_buckets[word_hash_value];
             if(hash_table_exact[len-1]->hash_buckets[word_hash_value] == NULL){
 
-                word* my_word= malloc(strlen(read_word)+1);
+                word* my_word= malloc(len + 1);
                 strcpy(my_word,read_word);
 
                 create_entry(my_word,&hash_table_exact[len-1]->hash_buckets[word_hash_value],queryId,dist);
@@ -688,7 +741,7 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
                     current = current->next;
                 }
                 if(found == -1){                // it was not found, we shall add it and add it to the list of buckets
-                    word* my_word= malloc(strlen(read_word)+1);
+                    word* my_word= malloc(len + 1);
                     strcpy(my_word,read_word);
 
                     entry temp_entry = NULL;
@@ -715,9 +768,6 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
         int len = strlen(read_word);
         //printf("%s %d %d %d \n",read_word ,queryId, dist, type );
 
-        int word_hash_value1 = jenkins(read_word)%100;
-        int word_hash_value2 = djb2(read_word)%100;
-
         int word_hash_value = hash(read_word)%10;
         //printf("Word %s hashes to %d\n",read_word,word_hash_value);
         if(hash_table[len-1] == NULL){
@@ -734,7 +784,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
             hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
             if(hamming_root_table[len-1] == NULL){                  //bk root hasnt been initialized
-                word* my_word= malloc(strlen(read_word)+1);
+                word* my_word= malloc(len + 1);
                 strcpy(my_word,read_word);
 
                 bk_create_node(&hamming_root_table[len-1],my_word,0,queryId,dist);
@@ -742,7 +792,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
                 hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
                 //unnecessary, just fix struct word
-                word* my_word= malloc(strlen(read_word)+1);
+                word* my_word= malloc(len + 1);
                 strcpy(my_word,read_word);
 
                 bk_index node = NULL;
@@ -761,7 +811,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
                 //first word for this bucket, create the bucket
                 hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
-                word* my_word= malloc(strlen(read_word)+1);
+                word* my_word= malloc(len + 1);
                 strcpy(my_word,read_word);
 
                 bk_index node = NULL;
@@ -780,7 +830,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
                     current = current->next;
                 }
                 if(found == -1){                // it was not found, we shall add it and add it to the list of buckets
-                    word* my_word= malloc(strlen(read_word)+1);
+                    word* my_word= malloc(len + 1);
                     strcpy(my_word,read_word);
 
                     bk_index node = NULL;
@@ -970,17 +1020,12 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         queries_head = queries_head->next;
         free(temps);
     }
-     r_node= NULL;
-r_node_bk_hamming = NULL;
- r_node_bk_edit = NULL;
+    
+    r_node= NULL;
+    r_node_bk_hamming = NULL;
+    r_node_bk_edit = NULL;
 
-queries_head = NULL;
-
-
-
-
-
-
+    queries_head = NULL;
 
     while(read_word != NULL){
 
@@ -999,7 +1044,9 @@ queries_head = NULL;
             
         //look in exact matching
 
-        lookup_exact(read_word,hash_tables_exact);
+        if(bloom_filter_exact[jenkins(read_word)%BLOOM_FILTER_SIZE] == 1 && bloom_filter_exact[djb2(read_word)%BLOOM_FILTER_SIZE] == 1){
+            lookup_exact(read_word,hash_tables_exact);
+        }
 
         read_word = strtok(NULL, " ");
     }
@@ -1295,7 +1342,7 @@ queries_head = NULL;
 
 ErrorCode InitializeIndex(){
 
-    for(int i = 0; i<99; i++){
+    for(int i = 0; i<BLOOM_FILTER_SIZE; i++){
         bloom_filter_exact[i] = 0;
     }
 
@@ -1323,13 +1370,26 @@ ErrorCode InitializeIndex(){
     }
 
     //Edit distance structures
-    hash_tables_edit = malloc(sizeof(Hash_table*)* 29);
-    for(int i = 0; i <=28 ; i++){
-       hash_tables_edit[i] = NULL;
+    // hash_tables_edit = malloc(sizeof(Hash_table*)* 29);
+    // for(int i = 0; i <=28 ; i++){
+    //    hash_tables_edit[i] = NULL;
+    // }
+    hash_tables_edit = malloc(sizeof(Hash_table));
+    hash_tables_edit->hash_buckets = malloc(sizeof(Hash_Bucket*)*EDIT_HASH_BUCKETS);
+    for(int i=0; i< EDIT_HASH_BUCKETS; i++){
+        hash_tables_edit->hash_buckets[i] = NULL;
     }
     ix = NULL;
 
     return EC_SUCCESS;
+}
+
+int strlen_my(const char* word){
+    int len = 4;
+    while(word[len] != '\0'){
+        len++;
+    }
+    return len;
 }
 
 ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
@@ -1417,7 +1477,7 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
     }else if(match_type == 1){
         deduplicate_hamming(query_str, query_id, match_dist, match_type, hash_tables_hamming, hamming_root_table);
     }else if(match_type == 2){
-        deduplicate_edit_distance(query_str, query_id, match_dist, match_type, hash_tables_edit, &ix);
+        deduplicate_edit_distance(query_str, query_id, match_dist, match_type, &ix);
     }
 }
 
@@ -1511,4 +1571,65 @@ ErrorCode EndQuery(QueryID query_id){
         bucket = bucket->next;
     }
 	return EC_SUCCESS;
+}
+// size_t strlen_my(const char *str)
+// {
+//     const char *cptr = str;
+//     uint32_t i, *s;
+//     size_t ctr = 0;
+
+//     /* Satisfy alignment requirements */
+//     while((uintptr_t)cptr & (sizeof(uint32_t)-1))
+//     {
+//         if(!*cptr)
+//             return cptr - str;
+//         cptr++;
+//     }
+
+//     s = (uint32_t *)cptr;
+
+//     do {
+//         i = s[ctr];
+//         /* Mask off high bit */
+//         i &= HIGH_MASK;
+//         /* subtract 0x01 from each byte,
+//            giving a set high bit if it
+//            was zero */
+//         i -= LOW_MASK;
+//         ctr++;
+//             /* Test for the set high bit
+//                and if it is found exit */
+//     } while(!(i &= NOT_HIGH_MASK));
+
+//     /* Find the first high bit set and
+//        create the corresponding byte index */
+//     i = div8(ffs(i));
+//     /* Remove the counter increment from the
+//        loop and multiply it by 4 to find the
+//        rest of the byte index */
+//     ctr = mul4_32(ctr - 1);
+
+//     /* Return the combined byte index with 1
+//        removed so it doesn't include the null
+//        terminator itself */
+//     return (i + ctr - 1);
+// }
+
+uint32_t gatopeich_strlen32(const char* str)
+{
+    uint32_t *u32 = (uint32_t*)str, u, abcd, i=0;
+    while(1)
+    {
+        u = u32[i++];
+        abcd = (u-0x01010101) & 0x80808080;
+        if (abcd && // If abcd is not 0, we have NUL or a non-ASCII char > 127...
+             (abcd &= ~u)) // ... Discard non-ASCII chars
+        {
+        #if BYTE_ORDER == BIG_ENDIAN
+            return 4*i - (abcd&0xffff0000 ? (abcd&0xff000000?4:3) : abcd&0xff00?2:1);
+        #else
+            return 4*i - (abcd&0xffff ? (abcd&0xff?4:3) : abcd&0xff0000?2:1);
+        #endif
+        }
+    }
 }

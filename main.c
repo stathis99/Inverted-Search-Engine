@@ -8,7 +8,8 @@
 char temp[MAX_DOC_LENGTH];
 
 int main(int argc, char* argv[]){
-    
+    extern query_ids* queries_head;
+
     //clock added
     double time_spent = 0.0;
     clock_t begin = clock();
@@ -19,8 +20,8 @@ int main(int argc, char* argv[]){
         exit(-1);
     }
 
+    //FILE* fp = fopen("./files/queries.txt","r");
     FILE* fp = fopen("./files/small_test.txt","r");
-    //FILE* fp = fopen("./files/small_test.txt","r");
     if(fp == NULL){
         printf("Couldnt open file.\n");
         exit(-1);
@@ -59,26 +60,34 @@ int main(int argc, char* argv[]){
 				exit(-1);
 			}
 		    ErrorCode err = MatchDocument(id, temp);
+
         }else if(ch == 'r'){
             unsigned int num_res=0;
 			if(EOF==fscanf(fp, "%d ", &num_res)){
                 return 1;
-		}
+		    }
+            query_ids* temp = queries_head;
 
-            /*int qid;
-            printf("correct results for document %d:\n",id);
+            int qid;
+
 			for(int i=0;i<(int)num_res;i++)
 			{
-				if(EOF==fscanf(fp, "%u ", &qid))
-				{
+				if(EOF==fscanf(fp, "%u ", &qid)){
 					printf("Corrupted Test File.\n");
 					fflush(NULL);
 					return 1;
 				}
+
+                if(temp->queryID == qid){
+                        
+                        temp = temp->next;
+                    
+                }else{
+                    printf("Found difference in document %d",id);
+                }
 				
-                printf("%d ->", qid);
+                // printf("%d ->", qid);
 			}
-            printf("\n\n");*/
 
         }else if(ch=='e')
 		{
@@ -98,7 +107,7 @@ int main(int argc, char* argv[]){
 			}
 		}
     }
-print_query_hash_buckets();
+
     //close input file
     fclose(fp);
 
