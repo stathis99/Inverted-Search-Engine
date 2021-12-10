@@ -80,7 +80,23 @@ int main(int argc, char* argv[]){
 			}
             printf("\n\n");
 
-        }	
+        }else if(ch=='e')
+		{
+			ErrorCode err=EndQuery(id);
+
+			if(err==EC_FAIL)
+			{
+				printf("The call to EndQuery() returned EC_FAIL.\n");
+				fflush(NULL);
+				return 1;
+			}
+			else if(err!=EC_SUCCESS)
+			{
+				printf("The call to EndQuery() returned unknown error code.\n");
+				fflush(NULL);
+				return 1;
+			}
+		}
     }
 
     //close input file

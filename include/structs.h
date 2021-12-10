@@ -135,6 +135,8 @@ typedef enum{
 /// Maximum query length in characters.
 #define MAX_QUERY_LENGTH ((MAX_WORD_LENGTH+1)*MAX_QUERY_WORDS)
 
+
+
 typedef struct Hash_table{
     struct Hash_Bucket** hash_buckets;
     //struct Hash_Bucket* hash_buckets[10];
@@ -196,4 +198,5 @@ typedef struct query_ids{
     struct query_ids* next;
 }query_ids;
 
+ErrorCode EndQuery(QueryID query_id);
 

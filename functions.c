@@ -1479,3 +1479,21 @@ ErrorCode DestroyIndex(){
         free(temp);
     }
 }
+
+ErrorCode EndQuery(QueryID query_id)
+{
+	// Remove this query from the active query set
+    //printf("%d\n",query_id);
+    Query* bucket = Q_Hash_Table->query_hash_buckets[query_id%10];
+    Query* bucket_prev = bucket;
+    while(bucket != NULL){
+        if(bucket->query_id == query_id){
+
+            bucket_prev ->next = bucket ->next;
+            free(bucket);
+        }
+        bucket_prev = bucket;
+        bucket = bucket ->next;
+    }
+	return EC_SUCCESS;
+}
