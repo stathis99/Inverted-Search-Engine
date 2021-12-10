@@ -936,6 +936,44 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
     int countex=0;
 
     int querys_matched = 0;
+
+    //free result lists from previous doc
+    while(r_node != NULL){
+        result_node* temps = r_node; 
+        r_node = r_node->next;
+        free(temps);
+    }
+
+    while(r_node_bk_edit != NULL){
+        result_node_bk* temps = r_node_bk_edit; 
+        r_node_bk_edit = r_node_bk_edit->next;
+        free(temps);
+    }
+
+    while(r_node_bk_hamming != NULL){
+        result_node_bk* temps = r_node_bk_hamming; 
+        r_node_bk_hamming = r_node_bk_hamming->next;
+        free(temps);
+    }
+
+    query_ids* temps = queries_head;
+    while(queries_head != NULL){
+        temps = queries_head;
+        queries_head = queries_head->next;
+        free(temps);
+    }
+     r_node= NULL;
+r_node_bk_hamming = NULL;
+ r_node_bk_edit = NULL;
+
+queries_head = NULL;
+
+
+
+
+
+
+
     while(read_word != NULL){
 
         //look in edit distance
@@ -958,7 +996,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         read_word = strtok(NULL, " ");
     }
 
-    printf("RESULTS FROM EXACT: \n\n");
+   //printf("RESULTS FROM EXACT: \n\n");
     result_node* temp_node1 = r_node;
     while(temp_node1 != NULL){
 
@@ -975,7 +1013,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                 temp_queries_head = temp_queries_head->next;
             }
             if(matched == 0){
-            printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+            //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
             Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%10];
             while(bucket != NULL){
                 if(bucket->query_id == temp_payload->queryId){      //query has been found
@@ -991,7 +1029,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                         }
                     }
                     if(to_find == 0){
-                        printf("Query %d fully matched\n", temp_payload->queryId);
+                        //printf("Query %d fully matched\n", temp_payload->queryId);
                         querys_matched;
                         if(queries_head == NULL){       //first query, insert it at head
                             queries_head = malloc(sizeof(query_ids));
@@ -1051,10 +1089,10 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         temp_node1 = temp_node1->next;
     }
     
-    printf("RESULTS FROM Edit: \n\n");
+   //printf("RESULTS FROM Edit: \n\n");
     result_node_bk* temp_node2 = r_node_bk_edit;
     while(temp_node2 != NULL){
-        printf("%s ->",temp_node2->this_entry->this_word);
+        //printf("%s ->",temp_node2->this_entry->this_word);
         Payload* temp_payload = temp_node2->this_entry->payload;
         while(temp_payload != NULL){
             //before checking payload, check that this query hasnt been matched yet
@@ -1085,7 +1123,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                         }
                     }
                     if(to_find == 0){
-                        printf("Query %d fully matched\n", temp_payload->queryId);
+                        //printf("Query %d fully matched\n", temp_payload->queryId);
                         querys_matched;
                         if(queries_head == NULL){       //first query, insert it at head
                             queries_head = malloc(sizeof(query_ids));
@@ -1145,7 +1183,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         temp_node2 = temp_node2->next;
     }
     
-    printf("RESULTS FROM hamming: \n\n");
+    //printf("RESULTS FROM hamming: \n\n");
     result_node_bk* temp_node3 = r_node_bk_hamming;
     while(temp_node3 != NULL){
         //printf("%s ->",temp_node3->this_entry->this_word);
@@ -1177,7 +1215,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                         }
                     }
                     if(to_find == 0){
-                        printf("Query %d fully matched\n", temp_payload->queryId);
+                        //printf("Query %d fully matched\n", temp_payload->queryId);
                         querys_matched;
                         if(queries_head == NULL){       //first query, insert it at head
                             queries_head = malloc(sizeof(query_ids));
@@ -1243,8 +1281,8 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         printf("%d ->",current->queryID);
         current = current->next;
     }
-printf("\n\n");
-print_bk_tree(ix,0);
+printf("\n");
+//print_bk_tree(ix,0);
 }
 
 ErrorCode InitializeIndex(){
