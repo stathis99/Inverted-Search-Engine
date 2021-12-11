@@ -1,5 +1,6 @@
 #include "./include/structs.h"
 #include <stdlib.h>
+#include <time.h> 
 #include <string.h>
 
 //global structs we are using
@@ -21,11 +22,66 @@ result_node_bk* r_node_bk_hamming = NULL;
 result_node_bk* r_node_bk_edit = NULL;
 
 query_ids* queries_head = NULL;
+double time_spent = 0.0;
 
 //entry functions
 void free_word(word* w){
     free(w);
 }
+
+static int distance (const char * word1,
+                     int len1,
+                     const char * word2,
+                     int len2)
+{
+    //clock_t begin = clock();
+
+
+    int matrix[len1 + 1][len2 + 1];
+    int i;
+    for (i = 0; i <= len1; i++) {
+        matrix[i][0] = i;
+    }
+    for (i = 0; i <= len2; i++) {
+        matrix[0][i] = i;
+    }
+    for (i = 1; i <= len1; i++) {
+        int j;
+        char c1;
+
+        c1 = word1[i-1];
+        for (j = 1; j <= len2; j++) {
+            char c2;
+
+            c2 = word2[j-1];
+            if (c1 == c2) {
+                matrix[i][j] = matrix[i-1][j-1];
+            }
+            else {
+                int delete;
+                int insert;
+                int substitute;
+                int minimum;
+
+                delete = matrix[i-1][j] + 1;
+                insert = matrix[i][j-1] + 1;
+                substitute = matrix[i-1][j-1] + 1;
+                minimum = delete;
+                if (insert < minimum) {
+                    minimum = insert;
+                }
+                if (substitute < minimum) {
+                    minimum = substitute;
+                }
+                matrix[i][j] = minimum;
+            }
+        }
+    }
+
+    return matrix[len1][len2];
+}
+
+
 
 enum error_code create_entry(const word* w, entry* e,unsigned int queryId,int dist){
     *e = malloc(sizeof(Entry));
@@ -163,6 +219,10 @@ int min3(int x, int y, int z) {
 
 //distance functions
 int edit_dist(const char* str1, const char* str2, int len1, int len2){
+        //clock added
+
+    //clock_t begin = clock();
+
     // Create a table to store results of subproblems
     int cost[len1 + 1][len2 + 1];
   
@@ -194,7 +254,9 @@ int edit_dist(const char* str1, const char* str2, int len1, int len2){
                             cost[i - 1][j - 1]); // Replace
         }
     }
-  
+    //clock_t end = clock();
+    //time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
+
     return cost[len1][len2];
 }
 
@@ -327,7 +389,7 @@ enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold,in
     bk_index temp_child  = (*ix)->child;
     int dist;
     if(match_type == 1){
-        dist = edit_dist(w,(*ix)->this_word,strlen(w),strlen((*ix)->this_word));
+        dist = distance(w,strlen(w),(*ix)->this_word,strlen((*ix)->this_word));
     }else{
         dist = hamming_distance(w,(*ix)->this_word,strlen(w));
     }
@@ -336,12 +398,7 @@ enum error_code lookup_entry_index(const word* w, bk_index* ix, int threshold,in
 
     //if ix keyword is close to w then create an entry and add it to the results
     if( dist <= threshold ){
-        //entry my_entry = NULL;
-        //create_entry((*ix)->this_word,&my_entry);
-        //add_entry(result,&my_entry);
-
         look_for_threshold((*ix)->payload,threshold,(*ix)->this_word,w,match_type,*ix);
-
     }
 
     //traverse the tree retrospectively 
@@ -415,8 +472,8 @@ int bk_add_node(bk_index* ix,word* entry_word,enum match_type type, bk_index* no
     int dist;
 
     if(type == EDIT_DIST){
-        dist = edit_dist(entry_word,(*ix)->this_word,strlen(entry_word),strlen((*ix)->this_word));
-    }else{
+        dist = distance(entry_word,strlen(entry_word),(*ix)->this_word,strlen((*ix)->this_word));
+    }else if(type == HAMMING_DIST){
         dist = hamming_distance(entry_word,(*ix)->this_word,strlen((*ix)->this_word));
     }
     //if ix doesnt have children create a node and set it as his  child
@@ -1503,6 +1560,11 @@ void match_query(result_node* head){
 }
 
 ErrorCode DestroyIndex(){
+
+    printf("The time %f seconds\n", time_spent);
+
+
+
     delete_hash_tables_edit();
     delete_hash_tables_hamming();
     delete_hash_tables_exact();
