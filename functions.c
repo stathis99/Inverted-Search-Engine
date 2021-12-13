@@ -24,46 +24,14 @@ result_node_bk* r_node_bk_edit = NULL;
 query_ids* queries_head = NULL;
 double time_spent = 0.0;
 
+Words_Hash_Table* words_hash_table = NULL;
+
 //entry functions
 void free_word(word* w){
     free(w);
 }
 
 
-int fast_compare( const char *ptr0, const char *ptr1, int len ){
-  int fast = len/sizeof(size_t) + 1;
-  int offset = (fast-1)*sizeof(size_t);
-  int current_block = 0;
-
-  if( len <= sizeof(size_t)){ fast = 0; }
-
-
-  size_t *lptr0 = (size_t*)ptr0;
-  size_t *lptr1 = (size_t*)ptr1;
-
-  while( current_block < fast ){
-    if( (lptr0[current_block] ^ lptr1[current_block] )){
-      int pos;
-      for(pos = current_block*sizeof(size_t); pos < len ; ++pos ){
-        if( (ptr0[pos] ^ ptr1[pos]) || (ptr0[pos] == 0) || (ptr1[pos] == 0) ){
-          return  (int)((unsigned char)ptr0[pos] - (unsigned char)ptr1[pos]);
-          }
-        }
-      }
-
-    ++current_block;
-    }
-
-  while( len > offset ){
-    if( (ptr0[offset] ^ ptr1[offset] )){ 
-      return (int)((unsigned char)ptr0[offset] - (unsigned char)ptr1[offset]); 
-      }
-    ++offset;
-    }
-	
-	
-  return 0;
-  }
 static int distance (const char * word1,
                      int len1,
                      const char * word2,
@@ -359,7 +327,7 @@ enum error_code look_for_threshold(struct Payload* payload,int threshold,const w
         if(payload->threshold == threshold){
             //printf("%s = %s q:%d t:%d \n",q_w,w,payload->queryId,payload->threshold);
             if(match_type == 1){            //we are using edit
-                if (fast_compare(temp->this_word,q_w,temp->len) == 0){
+                if (strcmp(temp->this_word,q_w) == 0){
                             //printf("%s     ->\n\n",temp->this_word);
                             if(r_node_bk_edit == NULL){
                                 r_node_bk_edit = malloc(sizeof(result_node_bk));
@@ -387,7 +355,7 @@ enum error_code look_for_threshold(struct Payload* payload,int threshold,const w
                             }                         
                         }
             }else if(match_type == 2){          //we are using hamming
-                if (fast_compare(temp->this_word,q_w,temp->len) == 0){
+                if (strcmp(temp->this_word,q_w) == 0){
                             //printf("%s     ->\n\n",temp->this_word);
                             if(r_node_bk_hamming == NULL){
                                 r_node_bk_hamming = malloc(sizeof(result_node_bk));
@@ -888,7 +856,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
                 strcpy(my_word,read_word);
 
                 bk_index node = NULL;
-                bk_add_node(&hamming_root_table[len-1],len, my_word, 1, &node,queryId,dist);
+                bk_add_node(&hamming_root_table[len-1],my_word,len, 1, &node,queryId,dist);
                 hash_tables_hamming[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_tables_hamming[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }
@@ -1122,6 +1090,40 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
 
     while(read_word != NULL){
         docWordLen = strlen(read_word);
+
+        //document deduplication here
+        //hash this word to see if it exists
+        int hash = djb2(read_word) % WORD_HASH_TABLE_BUCKETS;
+        if(words_hash_table->words_hash_buckets[hash] != NULL){
+            //bucket exists, check here
+            int found = -1;
+            Words_Hash_Bucket* current = words_hash_table->words_hash_buckets[hash];
+            Words_Hash_Bucket* previous = NULL;
+            while(current != NULL){//printf("comparing %s with %s",current->this_word,read_word);
+                if(strcmp(current->this_word,read_word) == 0){
+                    //word exists, skip
+                    found = 1;//printf("Found word %s\n",read_word);
+                    break;
+                }
+                previous = current;
+                current = current->next;
+            }
+            if(found == 1){
+                //word exists, skip
+                read_word = strtok(NULL, " ");
+                continue;                
+            }else{
+                //add it to the hash buckets, search it in structs
+                previous->next = malloc(sizeof(Words_Hash_Bucket));
+                strcpy(previous->next->this_word,read_word);
+                previous->next->next = NULL;
+            }
+        }else{
+            //create first bucket
+            words_hash_table->words_hash_buckets[hash] = malloc(sizeof(Words_Hash_Bucket));
+            strcpy(words_hash_table->words_hash_buckets[hash]->this_word,read_word);
+            words_hash_table->words_hash_buckets[hash]->next = NULL ;
+        }
 
         //look in edit distance
         for(int i=1;i<=3;i++){
@@ -1423,14 +1425,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         temp_node3 = temp_node3->next;
     }
 
-//     //print sorted query_ids list
-//     query_ids* current = queries_head;
-//     while(current != NULL){
-//         printf("%d ->",current->queryID);
-//         current = current->next;
-//     }
-// printf("\n");
-//print_bk_tree(ix,0);
+    reset_words_hash_table();
 }
 
 ErrorCode InitializeIndex(){
@@ -1462,17 +1457,17 @@ ErrorCode InitializeIndex(){
        hamming_root_table[i] = NULL;
     }
 
-    //Edit distance structures
-    // hash_tables_edit = malloc(sizeof(Hash_table*)* 29);
-    // for(int i = 0; i <=28 ; i++){
-    //    hash_tables_edit[i] = NULL;
-    // }
     hash_tables_edit = malloc(sizeof(Hash_table));
     hash_tables_edit->hash_buckets = malloc(sizeof(Hash_Bucket*)*EDIT_HASH_BUCKETS);
     for(int i=0; i< EDIT_HASH_BUCKETS; i++){
         hash_tables_edit->hash_buckets[i] = NULL;
     }
     ix = NULL;
+
+    words_hash_table = malloc(sizeof(Words_Hash_Table));
+    for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
+        words_hash_table->words_hash_buckets[i] = NULL;
+    }
 
     return EC_SUCCESS;
 }
@@ -1640,6 +1635,39 @@ ErrorCode DestroyIndex(){
         queries_head = queries_head->next;
         free(temp);
     }
+
+    free_words_hash_table();
+}
+
+void free_words_hash_table(){
+    for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
+        while(words_hash_table->words_hash_buckets[i] != NULL){
+            Words_Hash_Bucket* temp = words_hash_table->words_hash_buckets[i];
+            words_hash_table->words_hash_buckets[i] = words_hash_table->words_hash_buckets[i]->next;
+            free(words_hash_table->words_hash_buckets[i]);
+        }
+    }
+    free(words_hash_table);
+    words_hash_table = NULL;
+}
+
+void reset_words_hash_table(){
+    //free it
+    for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
+        while(words_hash_table->words_hash_buckets[i] != NULL){
+            Words_Hash_Bucket* temp = words_hash_table->words_hash_buckets[i];
+            words_hash_table->words_hash_buckets[i] = words_hash_table->words_hash_buckets[i]->next;
+            free(temp);
+        }
+    }
+    free(words_hash_table);
+    words_hash_table = NULL;
+    
+    //create the new one
+    words_hash_table = malloc(sizeof(Words_Hash_Table));
+    for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
+        words_hash_table->words_hash_buckets[i] = NULL;
+    }    
 }
 
 ErrorCode EndQuery(QueryID query_id){

@@ -6,6 +6,7 @@
 #define QUERY_HASH_BUCKETS 100
 #define BLOOM_FILTER_SIZE 500
 #define EDIT_HASH_BUCKETS 100
+#define WORD_HASH_TABLE_BUCKETS 100
 
 typedef char word;
 
@@ -210,5 +211,17 @@ typedef struct query_ids{
 ErrorCode EndQuery(QueryID query_id);
 
 void print_query_hash_buckets();
-int strlen_my();
-uint32_t gatopeich_strlen32(const char* str);
+//int strlen_my();
+//uint32_t gatopeich_strlen32(const char* str);
+
+typedef struct Words_Hash_Bucket{
+    word this_word[32];
+    struct Words_Hash_Bucket* next;
+}Words_Hash_Bucket;
+
+typedef struct Words_Hash_Table{
+    Words_Hash_Bucket* words_hash_buckets[WORD_HASH_TABLE_BUCKETS];
+}Words_Hash_Table;
+
+void free_words_hash_table();
+void reset_words_hash_table();
