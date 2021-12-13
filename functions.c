@@ -15,7 +15,7 @@ Hash_table* hash_tables_edit;
 bk_index* hamming_root_table;
 Hash_table** hash_tables_hamming;
 
-Hash_table_exact** hash_tables_exact;
+Hash_table_exact** hash_table_exact;
 
 result_node* r_node= NULL;
 result_node_bk* r_node_bk_hamming = NULL;
@@ -744,7 +744,7 @@ unsigned int jenkins(const void *_str) {
 
 
 
-void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist, int type, Hash_table_exact** hash_table_exact){
+void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist, int type){
     
     char* read_word;
     char* temp_temp = (char*)temp; 
@@ -815,7 +815,7 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
 
 }
 
-void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int type, Hash_table** hash_table, bk_index* hamming_root_table){
+void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int type){
 
 
     char* read_word;
@@ -827,26 +827,26 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
 
         int word_hash_value = hash(read_word)%10;
         //printf("Word %s hashes to %d\n",read_word,word_hash_value);
-        if(hash_table[len-1] == NULL){
+        if(hash_tables_hamming[len-1] == NULL){
 
             //initialize hashtable 
-            hash_table[len-1] = malloc(sizeof(Hash_table));
-            hash_table[len-1]->hash_buckets = malloc(sizeof(Hash_Bucket*)*10);
+            hash_tables_hamming[len-1] = malloc(sizeof(Hash_table));
+            hash_tables_hamming[len-1]->hash_buckets = malloc(sizeof(Hash_Bucket*)*10);
             
             //initialize hash buckets
             for(int i=0 ; i<= 9 ;i++){
-                hash_table[len-1]->hash_buckets[i] = NULL;
+                hash_tables_hamming[len-1]->hash_buckets[i] = NULL;
             }
             //hash word to find bucket
-            hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
+            hash_tables_hamming[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
             if(hamming_root_table[len-1] == NULL){                  //bk root hasnt been initialized
                 word* my_word= malloc(len + 1);
                 strcpy(my_word,read_word);
 
                 bk_create_node(&hamming_root_table[len-1],my_word,0,queryId,dist);
-                hash_table[len-1]->hash_buckets[word_hash_value]->node = hamming_root_table[len-1];
-                hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
+                hash_tables_hamming[len-1]->hash_buckets[word_hash_value]->node = hamming_root_table[len-1];
+                hash_tables_hamming[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
                 //unnecessary, just fix struct word
                 word* my_word= malloc(len + 1);
@@ -854,8 +854,8 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
 
                 bk_index node = NULL;
                 bk_add_node(&hamming_root_table[len-1], my_word, 1, &node,queryId,dist);
-                hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
-                hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
+                hash_tables_hamming[len-1]->hash_buckets[word_hash_value]->node = node;
+                hash_tables_hamming[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }
             
 
@@ -863,18 +863,18 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
         else{              //this hash table has been initialized
         
             //search if it exists in any of the buckets, starting from the first
-            Hash_Bucket* current = hash_table[len-1]->hash_buckets[word_hash_value];
-            if(hash_table[len-1]->hash_buckets[word_hash_value] == NULL){
+            Hash_Bucket* current = hash_tables_hamming[len-1]->hash_buckets[word_hash_value];
+            if(hash_tables_hamming[len-1]->hash_buckets[word_hash_value] == NULL){
                 //first word for this bucket, create the bucket
-                hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
+                hash_tables_hamming[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
                 word* my_word= malloc(len + 1);
                 strcpy(my_word,read_word);
 
                 bk_index node = NULL;
                 bk_add_node(&hamming_root_table[len-1], my_word, 2, &node,queryId,dist);
-                hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
-                hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
+                hash_tables_hamming[len-1]->hash_buckets[word_hash_value]->node = node;
+                hash_tables_hamming[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
                 int found = -1;
                 while (current != NULL){
@@ -898,9 +898,9 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
                     new_bucket->next = NULL;
 
                     //append it to the head
-                    Hash_Bucket* previous_first = hash_table[len-1]->hash_buckets[word_hash_value];
+                    Hash_Bucket* previous_first = hash_tables_hamming[len-1]->hash_buckets[word_hash_value];
                     //first bucket it now the new one
-                    hash_table[len-1]->hash_buckets[word_hash_value] = new_bucket;
+                    hash_tables_hamming[len-1]->hash_buckets[word_hash_value] = new_bucket;
                     new_bucket->next = previous_first;
 
 
@@ -978,21 +978,21 @@ void delete_hash_tables_hamming(){
 void delete_hash_tables_exact(){
     for(int i=0; i <= 28; i++){
         //if this hash table has been allocated, free it; else move on
-        if(hash_tables_exact[i] != NULL){
+        if(hash_table_exact[i] != NULL){
             for(int j=0; j <= 9; j++){
                 //free the hash_table itself
                 entry temp ; 
-                while(hash_tables_exact[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
-                    temp = hash_tables_exact[i]->hash_buckets[j];
-                    hash_tables_exact[i]->hash_buckets[j] = hash_tables_exact[i]->hash_buckets[j]->next;
+                while(hash_table_exact[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
+                    temp = hash_table_exact[i]->hash_buckets[j];
+                    hash_table_exact[i]->hash_buckets[j] = hash_table_exact[i]->hash_buckets[j]->next;
                     destroy_entry(&temp); 
                 }
             }
-            free(hash_tables_exact[i]->hash_buckets);
-            free(hash_tables_exact[i]);
+            free(hash_table_exact[i]->hash_buckets);
+            free(hash_table_exact[i]);
         }
     }
-    free(hash_tables_exact);
+    free(hash_table_exact);
 }
 
 void lookup_exact(const word* w,Hash_table_exact** hash_table_exact){
@@ -1102,7 +1102,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         //look in exact matching
 
         if(bloom_filter_exact[jenkins(read_word)%BLOOM_FILTER_SIZE] == 1 && bloom_filter_exact[djb2(read_word)%BLOOM_FILTER_SIZE] == 1){
-            lookup_exact(read_word,hash_tables_exact);
+            lookup_exact(read_word,hash_table_exact);
         }
 
         read_word = strtok(NULL, " ");
@@ -1410,9 +1410,9 @@ ErrorCode InitializeIndex(){
     }
 
     //Exact matching structures
-    hash_tables_exact = malloc(sizeof(Hash_table_exact*)* 29);
+    hash_table_exact = malloc(sizeof(Hash_table_exact*)* 29);
     for(int i = 0; i <=28 ; i++){
-       hash_tables_exact[i] = NULL;
+       hash_table_exact[i] = NULL;
     }
 
     //Hamming distance structures
@@ -1530,9 +1530,9 @@ ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_
 
     //update appropriate data structures
     if(match_type == 0){
-        deduplicate_exact_matching(query_str, query_id, match_dist, match_type, hash_tables_exact);
+        deduplicate_exact_matching(query_str, query_id, match_dist, match_type);
     }else if(match_type == 1){
-        deduplicate_hamming(query_str, query_id, match_dist, match_type, hash_tables_hamming, hamming_root_table);
+        deduplicate_hamming(query_str, query_id, match_dist, match_type);
     }else if(match_type == 2){
         deduplicate_edit_distance(query_str, query_id, match_dist, match_type, &ix);
     }
@@ -1560,10 +1560,6 @@ void match_query(result_node* head){
 }
 
 ErrorCode DestroyIndex(){
-
-    printf("The time %f seconds\n", time_spent);
-
-
 
     delete_hash_tables_edit();
     delete_hash_tables_hamming();

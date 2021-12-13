@@ -162,10 +162,10 @@ typedef struct Hash_table_exact{
     entry* hash_buckets;
 }Hash_table_exact;
 
-void deduplicate_edit_distance(const char* temp, unsigned int , int , int, bk_index* ix);
+void deduplicate_edit_distance(const char* temp, unsigned int , int , int,bk_index* ix);
 void deduplicate_edit_distance2(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* ix);
-void deduplicate_exact_matching(const char* temp, unsigned int , int , int, Hash_table_exact** hash_table_exact);
-void deduplicate_hamming(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* hamming_root_table);
+void deduplicate_exact_matching(const char* temp, unsigned int , int , int);
+void deduplicate_hamming(const char* temp, unsigned int , int , int);
 enum error_code add_entry_no_list(entry first, const entry new_entry);
 void print_hash_table_exact(Hash_table_exact** hash_table_exact);
 void delete_hash_tables_hamming();
