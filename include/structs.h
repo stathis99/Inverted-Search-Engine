@@ -19,7 +19,7 @@ typedef struct Payload{
 //structs for entry list
 typedef struct Entry{
     Payload* payload;
-    word* this_word;
+    word this_word[32];
     struct Entry* next;
 }Entry;
 typedef Entry *entry;
@@ -28,7 +28,6 @@ typedef struct result_node{
     struct result_node* next;
     entry this_entry;
 }result_node;
-
 
 typedef struct Entry_List{
     entry first_node;
@@ -39,7 +38,7 @@ typedef Entry_List *entry_list;
 
 //struct for bk tree
 typedef struct Index{
-    word* this_word;
+    word this_word[32];
     int len;
     int weight;
     struct Index* next;
@@ -55,7 +54,6 @@ typedef struct result_node_bk{
 
 enum error_code { SUCCESS = 0, ERROR = 1, NULL_POINTER = 2};
 enum match_type { EDIT_DIST = 1, HAMMING_DIST = 2};
-
 
 void free_word(word* w);
 enum error_code create_entry(const word* w, entry* e,unsigned int queryId,int dist);
@@ -78,7 +76,7 @@ enum error_code build_entry_index_sort(const entry_list* el, enum match_type typ
 enum error_code lookup_entry_index(const word* w,int docWordLen, bk_index* ix, int threshold,int match_type);
 void print_bk_tree(bk_index ix,int pos);
 enum error_code destroy_entry_index(bk_index* ix);
-bk_index bk_create_node(bk_index* ix,word* entry_word,int weight, int queryId, int dist);
+bk_index bk_create_node(bk_index* ix,const word* entry_word,int weight, int queryId, int dist);
 entry_list read_queries(int* number,FILE* fp);
 int count_documents(FILE* fp);
 entry_list* read_documents(int* number,FILE* fp,int number_of_documents);
@@ -86,7 +84,7 @@ void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold);
 enum error_code look_for_threshold(struct Payload* payload,int threshold,const word* q_w,const word* w,int match_type ,bk_index temp);
 
 //new functions to create BK without sorting inner nodes
-int bk_add_node(bk_index* ix,word* entry_word,int qWordLen,enum match_type type, bk_index* node, int queryId, int dist);
+int bk_add_node(bk_index* ix,const word* entry_word,int qWordLen,enum match_type type, bk_index* node, int queryId, int dist);
 enum error_code build_entry_index(const entry_list* el, enum match_type type, bk_index* ix);
 
 
@@ -143,8 +141,6 @@ typedef enum{
 
 /// Maximum query length in characters.
 #define MAX_QUERY_LENGTH ((MAX_WORD_LENGTH+1)*MAX_QUERY_WORDS)
-
-
 
 typedef struct Hash_table{
     struct Hash_Bucket** hash_buckets;
@@ -211,8 +207,6 @@ typedef struct query_ids{
 ErrorCode EndQuery(QueryID query_id);
 
 void print_query_hash_buckets();
-//int strlen_my();
-//uint32_t gatopeich_strlen32(const char* str);
 
 typedef struct Words_Hash_Bucket{
     word this_word[32];
