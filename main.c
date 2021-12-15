@@ -61,7 +61,7 @@ int main(int argc, char* argv[]){
 			}
 		    ErrorCode err = MatchDocument(id, temp);
 
-        }else if(ch == 'r'){
+}else if(ch == 'r'){
             unsigned int num_res=0;
 			if(EOF==fscanf(fp, "%d ", &num_res)){
                 return 1;
@@ -70,6 +70,7 @@ int main(int argc, char* argv[]){
 
             int qid;
 
+            printf("correct results of doc %d:\n",qid);
 			for(int i=0;i<(int)num_res;i++)
 			{
 				if(EOF==fscanf(fp, "%u ", &qid)){
@@ -86,8 +87,9 @@ int main(int argc, char* argv[]){
                     printf("Found difference in document %d",id);
                 }
 				
-                // printf("%d ->", qid);
+                printf("%d ->", qid);
 			}
+            printf("\n\n");
 
         }else if(ch=='e')
 		{

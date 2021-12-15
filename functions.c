@@ -4,12 +4,13 @@
 #include <string.h>
 
 //global structs we are using
+
+//bloom filter used in exact match
 int bloom_filter_exact[BLOOM_FILTER_SIZE];
 
 Query_Hash_Table* Q_Hash_Table;
 
 bk_index ix;
-//Hash_table** hash_tables_edit;
 Hash_table* hash_tables_edit;
 
 bk_index* hamming_root_table;
@@ -22,23 +23,13 @@ result_node_bk* r_node_bk_hamming = NULL;
 result_node_bk* r_node_bk_edit = NULL;
 
 query_ids* queries_head = NULL;
-double time_spent = 0.0;
 
 Words_Hash_Table* words_hash_table = NULL;
 
-//entry functions
-void free_word(word* w){
-    free(w);
-}
+//----------------------------------------distance functions
 
-
-static int distance (const char * word1,
-                     int len1,
-                     const char * word2,
-                     int len2)
-{
-    //clock_t begin = clock();
-
+//calculates levestein distance
+static int distance (const char * word1,int len1, const char * word2,int len2){
 
     int matrix[len1 + 1][len2 + 1];
     int i;
@@ -84,6 +75,58 @@ static int distance (const char * word1,
     return matrix[len1][len2];
 }
 
+int hamming_distance(const char* str1, const char* str2, int len){
+    
+    //compare characters one by one
+    int distance = 0;
+    
+    for(int i=0; i < len; i++){
+        if(str1[i] != str2[i]){
+            distance++;
+        }
+    }
+    return distance;
+}
+
+//----------------------------------------hash functions
+
+unsigned int djb2(const void *_str) {
+	const char *str = _str;
+    unsigned int hash = 5381;
+	char c;
+	while ((c = *str++)) {
+		hash = ((hash << 5) + hash) + c;
+	}
+	return hash;
+}
+
+unsigned int jenkins(const void *_str) {
+	const char *key = _str;
+	unsigned int hash = 0;
+	while (*key) {
+		hash += *key;
+		hash += (hash << 10);
+		hash ^= (hash >> 6);
+		key++;
+	}
+	hash += (hash << 3);
+	hash ^= (hash >> 11);
+	hash += (hash << 15);
+	return hash;
+}
+
+unsigned long hash(unsigned char *str){
+    unsigned long hash = 5381;
+    int c;
+
+    while (c = *str++)
+        hash = ((hash << 5) + hash) + c;
+
+    return hash;
+}
+
+
+//---------------------------------------Entry functions. Entry stores a word and has a payload with all the queries that contain this word.
 
 
 enum error_code create_entry(const word* w, entry* e,unsigned int queryId,int dist){
@@ -100,6 +143,15 @@ enum error_code create_entry(const word* w, entry* e,unsigned int queryId,int di
     return SUCCESS;
 }
 
+enum error_code add_entry_no_list(entry first, const entry new_entry){
+    if(first == NULL){
+        return NULL_POINTER;
+    }
+    new_entry->next = first->next;
+    first->next = new_entry;
+    return SUCCESS;
+}
+
 enum error_code destroy_entry(entry* e){
     if(*e == NULL){
         return NULL_POINTER;
@@ -112,195 +164,21 @@ enum error_code destroy_entry(entry* e){
 	    free(curr);
     }
 
-    //free((*e)->this_word);
     free(*e);
     return SUCCESS;
 }
 
-
-//entry list functions
-enum error_code create_entry_list(entry_list* el){
-    *el = malloc(sizeof(Entry_List));
-    if(el == NULL){
-        return NULL_POINTER;
-    }
-    (*el)->first_node = NULL;
-    (*el)->last_node = NULL;
-    (*el)->node_count = 0;
-
-    return SUCCESS;
-}
-
-enum error_code destroy_entry_list(entry_list* el){
-    if(*el == NULL){        //it is empty
-        return NULL_POINTER;
-    }
-    entry temp;
-    while((*el)->first_node != NULL){
-        temp = (*el)->first_node;
-        (*el)->first_node = (*el)->first_node->next;
-        destroy_entry(&temp);
-        free(temp);
-    }
-    free(*el);
-    *el = NULL;
-    return SUCCESS;
-}
-
-unsigned int get_number_entries(const entry_list* el){
-    if(*el == NULL){
-        return 0;
-    }
-    entry temp = (*el)->first_node;
-    int number = 0;
-    while(temp != NULL){
-        number++;
-        temp = temp->next;
-    }
-    return (*el)->node_count;
+//adds new payload to payload list
+void add_payload(struct Payload* payload,int queryId, int dist){
+    Payload* new_payload = malloc(sizeof(Payload));
+    new_payload->queryId = queryId;
+    new_payload->threshold = dist;
+    new_payload->next = payload->next;
+    payload->next = new_payload;
 }
 
 
-enum error_code add_entry(entry_list* el, const entry* e){
-    if(*e == NULL){
-        return NULL_POINTER;
-    }
-    if((*el)->first_node == NULL){
-        (*el)->node_count++;
-        (*el)->first_node = (entry)(*e);
-    }else if((*el)->last_node == NULL){
-        (*el)->first_node->next = *e;
-        (*el)->node_count++;
-        (*el)->last_node = (entry)(*e);
-    }else{
-        (*el)->last_node->next = *e;
-        (*el)->node_count++;
-        (*el)->last_node = (entry)(*e);
-    }
-    return SUCCESS;
-}
-
-enum error_code add_entry_no_list(entry first, const entry new_entry){
-    if(first == NULL){
-        return NULL_POINTER;
-    }
-    new_entry->next = first->next;
-    first->next = new_entry;
-    return SUCCESS;
-}
-
-
-void print_list(const entry_list el){
-    if(el == NULL){
-        return;
-    }
-    entry head = el->first_node;
-    while(head != NULL){
-        printf("%s ",head->this_word);
-        head = head-> next;
-    }
-}
-
-entry* get_first(const entry_list* el){ 
-    return &((*el)->first_node);
-}
-
-entry* get_next(const entry_list* el, entry* e){
-    return &((*e)->next);
-}
-
-
-//min functions
-int min2(int x, int y){ 
-    return x > y ? y:x;
-}
-
-int min3(int x, int y, int z) { 
-    return min2( min2(x,y), z); 
-}
-
-
-//distance functions
-int edit_dist(const char* str1, const char* str2, int len1, int len2){
-        //clock added
-
-    //clock_t begin = clock();
-
-    // Create a table to store results of subproblems
-    int cost[len1 + 1][len2 + 1];
-  
-    // Fill d[][] in bottom up manner
-    for (int i = 0; i <= len1; i++) {
-        for (int j = 0; j <= len2; j++) {
-            // If first string is empty, only option is to
-            // insert all characters of second string
-            if (i == 0)
-                cost[i][j] = j; // Min. operations = j
-  
-            // If second string is empty, only option is to
-            // remove all characters of second string
-            else if (j == 0)
-                cost[i][j] = i; // Min. operations = i
-  
-            // If last characters are same, ignore last char
-            // and recur for remaining string
-            else if (str1[i - 1] == str2[j - 1])
-                cost[i][j] = cost[i - 1][j - 1];
-  
-            // If the last character is different, consider
-            // all possibilities and find the minimum
-            else
-                cost[i][j]
-                    = 1
-                      + min3(cost[i][j - 1], // Insert
-                            cost[i - 1][j], // Remove
-                            cost[i - 1][j - 1]); // Replace
-        }
-    }
-    //clock_t end = clock();
-    //time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
-
-    return cost[len1][len2];
-}
-
-int hamming_distance(const char* str1, const char* str2, int len){
-    
-    //compare characters one by one
-    int distance = 0;
-    
-    for(int i=0; i < len; i++){
-        if(str1[i] != str2[i]){
-            distance++;
-        }
-    }
-    return distance;
-}
-
-
-//bk functions
- void print_bk_tree(bk_index ix, int pos){  
-
-    if(ix == NULL){
-        return;
-    }  
-
-    bk_index temp_child  = ix->child;
-    
-    printf("\n\n   %s:%d  %d     ",ix->this_word,ix->weight,pos);
-
-    Payload* temp_payload;
-    temp_payload = ix->payload;
-    do{
-        printf("q:%d t:%d ",temp_payload->queryId,temp_payload->threshold);
-        temp_payload = temp_payload->next;
-    }while(temp_payload != NULL);
-
-    while(temp_child != NULL){
-        print_bk_tree(temp_child,pos-1);
-        temp_child = temp_child->next;   
-    }
-    return;
- }
+//-----------------------------------------BK tree functions. BK tree stores querie words and is used for searching matches with a given threshold
 
 //creates a bk tree node
 bk_index bk_create_node(bk_index* ix,const word* entry_word,int weight,int queryId, int dist){
@@ -321,7 +199,7 @@ bk_index bk_create_node(bk_index* ix,const word* entry_word,int weight,int query
         return *ix;
 }
 
-//
+//looks for queries in paload list of a word and updates the result list. this function is called if a doc word matches with a word in a bk tree.
 enum error_code look_for_threshold(struct Payload* payload,int threshold,const word* q_w,const word* w,int match_type ,bk_index temp){
     while(payload != NULL){
         if(payload->threshold == threshold){
@@ -388,18 +266,18 @@ enum error_code look_for_threshold(struct Payload* payload,int threshold,const w
     }
 }
 
-
+//looks for words tha match with a given doc word in a bk tree 
 enum error_code lookup_entry_index(const word* w,int docWordLen, bk_index* ix, int threshold,int match_type){
     bk_index temp_child  = (*ix)->child;
     int dist;
+
     if(match_type == 1){
         dist = distance(w,docWordLen,(*ix)->this_word,(*ix)->len);
     }else{
         dist = hamming_distance(w,(*ix)->this_word,docWordLen);
     }
 
-
-    //if ix keyword is close to w then create an entry and add it to the results
+    //if ix keyword is close to doc word then look for queries id in payload list that match the given threshold
     if( dist <= threshold ){
         look_for_threshold((*ix)->payload,threshold,(*ix)->this_word,w,match_type,*ix);
     }
@@ -416,17 +294,55 @@ enum error_code lookup_entry_index(const word* w,int docWordLen, bk_index* ix, i
     return SUCCESS;
 }
 
+//looks for ward in exact match index
+void lookup_exact(const word* w,Hash_table_exact** hash_table_exact){
+    for(int i=0; i<=28; i++){
+        if(hash_table_exact[i] != NULL){
+            for(int j=0; j< EXACT_HASH_BUCKET; j++){
+                if( hash_table_exact[i]->hash_buckets[j] != NULL){
+                    entry temp = hash_table_exact[i]->hash_buckets[j]; 
+                    while(temp != NULL){
+                        if (strcmp(temp->this_word,w) == 0){
+                            //printf("%s     ->\n\n",temp->this_word);
+                            if(r_node == NULL){
+                                r_node = malloc(sizeof(result_node));
+                                r_node->next = NULL;
+                                r_node->this_entry = temp;
+                            }else{
+                                result_node* current = r_node;
+                                int found = -1;
+                                while(current != NULL){
+                                    if(strcmp(current->this_entry->this_word,w) == 0){
+                                        found = 1;
+                                        break;
+                                    }
+                                    current = current->next;
+                                }
+                                if(found == -1){
+                                    result_node* new_node = malloc(sizeof(result_node));
+                                    new_node->next = NULL;
+                                    new_node->this_entry = temp; 
 
+                                    result_node* second = r_node->next;
+                                    r_node->next = new_node;
+                                    new_node->next = second;
+                                }
+                            }                         
+                        }
+                        temp =temp->next;
+                    }
+                }
+            }
+        }
+    }
+}
 
-
+//destroys a bk tree
 enum error_code destroy_entry_index(bk_index* ix){
     if(*ix == NULL){
         return NULL_POINTER;
     }
-
     bk_index temp_child  = (*ix)->child;
-    //temporary because of unnecessary word* struct
-    //free((*ix)->this_word);
 
     Payload* curr;
     while((*ix)->payload != NULL){
@@ -447,29 +363,7 @@ enum error_code destroy_entry_index(bk_index* ix){
 
 }
 
-void check_entry_list(const entry_list doc_list, bk_index* ix,int threshold){
-    entry head = doc_list->first_node;
-    while(head != NULL){
-        entry_list el ;
-        create_entry_list(&el);
-        //lookup_entry_index(head->this_word,ix,threshold);
-        if(el != NULL ){
-            printf("Word %s matches with:\n",head->this_word);
-            entry* result = get_first(&el);
-            entry temp = *result;
-            while(temp != NULL){
-                printf("%s\n",temp->this_word);
-                temp = temp->next;
-            }
-        }
-        destroy_entry_list(&el);
-        head = head->next;
-    }
-}
-
-
-
-
+//adds a node to a given bk tree
 int bk_add_node(bk_index* ix, const word* entry_word,int qWordLen,enum match_type type, bk_index* node, int queryId, int threshold){
     bk_index temp_child  = (*ix)->child;
     int dist;
@@ -481,12 +375,9 @@ int bk_add_node(bk_index* ix, const word* entry_word,int qWordLen,enum match_typ
     }
     //if ix doesnt have children create a node and set it as his  child
     if(temp_child == NULL){
-
         *node = bk_create_node(&(*ix)->child, entry_word, dist,queryId,threshold);
         return 1; 
-
     }else{
-
         //for every child of ix 
         while(temp_child != NULL){
 
@@ -507,15 +398,34 @@ int bk_add_node(bk_index* ix, const word* entry_word,int qWordLen,enum match_typ
     return 1;
 }
 
+//prints a bk tree
+ void print_bk_tree(bk_index ix, int pos){  
 
-//adds new payload to payload list
-void add_payload(struct Payload* payload,int queryId, int dist){
-    Payload* new_payload = malloc(sizeof(Payload));
-    new_payload->queryId = queryId;
-    new_payload->threshold = dist;
-    new_payload->next = payload->next;
-    payload->next = new_payload;
-}
+    if(ix == NULL){
+        return;
+    }  
+
+    bk_index temp_child  = ix->child;
+    
+    printf("\n\n   %s:%d  %d     ",ix->this_word,ix->weight,pos);
+
+    Payload* temp_payload;
+    temp_payload = ix->payload;
+    do{
+        printf("q:%d t:%d ",temp_payload->queryId,temp_payload->threshold);
+        temp_payload = temp_payload->next;
+    }while(temp_payload != NULL);
+
+    while(temp_child != NULL){
+        print_bk_tree(temp_child,pos-1);
+        temp_child = temp_child->next;   
+    }
+    return;
+ }
+
+
+//------------------------------------------deduplicate functions reciece all querie wards deduplicate them and add them to their indexes
+
 
 void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist, int type, bk_index* ix){
     char* read_word;
@@ -573,174 +483,6 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
     }
 }
 
-/*void deduplicate_edit_distance2(const char* temp, unsigned int queryId, int dist, int type, Hash_table** hash_table, bk_index* ix){
-    char* read_word;
-    char* temp_temp = (char*)temp; 
-    read_word = strtok(temp_temp, " ");
-    while(read_word != NULL){
-        int len = strlen(read_word);
-        //printf("%s %d %d %d \n",read_word ,queryId, dist, type );
-
-        int word_hash_value = hash(read_word)%10;
-        //printf("Word %s hashes to %d\n",read_word,word_hash_value);
-        if(hash_table == NULL){
-
-            //initialize hashtable 
-        hash_table = malloc(sizeof(Hash_table));    
-            hash_table->hash_buckets = malloc(sizeof(Hash_Bucket*)*10);
-            
-            //initialize hash buckets
-            for(int i=0 ; i<= 9 ;i++){
-                hash_table[len-1]->hash_buckets[i] = NULL;
-            }
-
-            //hash word to find bucket
-            hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
-
-            if((*ix) == NULL){                  //bk root hasnt been initialized
-                word* my_word= malloc(len + 1);
-                strcpy(my_word,read_word);
-
-                bk_create_node(ix,my_word,0,queryId,dist);
-                hash_table[len-1]->hash_buckets[word_hash_value]->node = *ix;
-                hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
-
-            }else{
-                word* my_word= malloc(len + 1);
-                strcpy(my_word,read_word);
-
-                bk_index node = NULL;
-                bk_add_node(ix, my_word, 1, &node, queryId,dist);
-                hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
-                hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
-            }
-
-        }else{              //this hash table has been initialized
-        
-            //search if it exists in any of the buckets, starting from the first
-            Hash_Bucket* current = hash_table[len-1]->hash_buckets[word_hash_value];
-            if(hash_table[len-1]->hash_buckets[word_hash_value] == NULL){
-                //first word for this bucket, create the bucket
-                hash_table[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
-
-                word* my_word= malloc(len + 1);
-                strcpy(my_word,read_word);
-
-                bk_index node = NULL;
-                bk_add_node(ix, my_word, 1, &node,queryId,dist);
-                hash_table[len-1]->hash_buckets[word_hash_value]->node = node;
-                hash_table[len-1]->hash_buckets[word_hash_value]->next = NULL;
-            }else{
-                int found = -1;
-                while (current != NULL){
-                    if(strcmp(current->node->this_word,read_word) == 0){       //does the word exist
-                        found = 1;
-                        //printf("I found word %s again\n",read_word);
-                        add_payload(current->node->payload,queryId,dist);
-                        break;
-                    }
-                    current = current->next;
-                }
-                if(found == -1){                // it was not found, we shall add it and add it to the list of buckets
-                    word* my_word = malloc(len + 1);
-                    strcpy(my_word,read_word);
-
-                    bk_index node = NULL;
-                    bk_add_node(ix, my_word, 1, &node,queryId,dist);
-                    //create this hash_bucket to store data
-                    Hash_Bucket* new_bucket = malloc(sizeof(Hash_Bucket));
-                    new_bucket->node = node;
-                    new_bucket->next = NULL;
-
-                    //append it to the head
-                    Hash_Bucket* previous_first = hash_table[len-1]->hash_buckets[word_hash_value];
-                    //first bucket is now the new one
-                    hash_table[len-1]->hash_buckets[word_hash_value] = new_bucket;
-                    new_bucket->next = previous_first;
-                }
-            }
-        }
-
-        //processing of current word ended, move on to the next one
-        read_word = strtok(NULL, " ");
-    }
-
-}*/
-
-unsigned long hash(unsigned char *str){
-    unsigned long hash = 5381;
-    int c;
-
-    while (c = *str++)
-        hash = ((hash << 5) + hash) + c;
-
-    return hash;
-}
-
-void print_hash_tables(Hash_table** hash_table){
-    for(int i=0 ; i <= 28; i++){
-        if(hash_table[i] != NULL){
-            for(int j=0; j <= 9; j++){
-                Hash_Bucket* current = hash_table[i]->hash_buckets[j];
-                while(current != NULL){
-                    printf("Printing length %d hash %d:\n",i+1,j);
-                    //access the bk node that this bucket points to
-                    printf("%s     ->",current->node->this_word);
-                    current = current->next;
-                }printf("\n");
-            }
-            printf("Length %d finished\n\n",i+1);
-        }
-    }
-}
-
-void delete_hash_tables_edit(){
-
-        //if this hash table has been allocated, free it; else move on
-        if(hash_tables_edit != NULL){
-            for(int j=0; j < EDIT_HASH_BUCKETS; j++){
-                //Hash_Bucket* current = hash_tables[i]->hash_buckets[j];
-                    Hash_Bucket* temp ; 
-                    while(hash_tables_edit->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
-                        temp = hash_tables_edit->hash_buckets[j];
-                        hash_tables_edit->hash_buckets[j] = hash_tables_edit->hash_buckets[j]->next;
-                        free(temp); 
-                    }
-            }
-            free(hash_tables_edit->hash_buckets);
-            free(hash_tables_edit);
-        }
-
-    destroy_entry_index(&ix);
-}
-
-unsigned int djb2(const void *_str) {
-	const char *str = _str;
-    unsigned int hash = 5381;
-	char c;
-	while ((c = *str++)) {
-		hash = ((hash << 5) + hash) + c;
-	}
-	return hash;
-}
-
-unsigned int jenkins(const void *_str) {
-	const char *key = _str;
-	unsigned int hash = 0;
-	while (*key) {
-		hash += *key;
-		hash += (hash << 10);
-		hash ^= (hash >> 6);
-		key++;
-	}
-	hash += (hash << 3);
-	hash ^= (hash >> 11);
-	hash += (hash << 15);
-	return hash;
-}
-
-
-
 void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist, int type){
     
     char* read_word;
@@ -754,17 +496,17 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
         bloom_filter_exact[jenkins(read_word)%BLOOM_FILTER_SIZE] = 1;
 
 
-        int word_hash_value = hash(read_word)%10;
+        int word_hash_value = hash(read_word)%EXACT_HASH_BUCKET;
         //printf("Word %s hashes to j:%d dj:%d\n",read_word,word_hash_value1,word_hash_value2);
         
         if(hash_table_exact[len-1] == NULL){
 
             //initialize hashtable 
             hash_table_exact[len-1] = malloc(sizeof(Hash_table_exact));
-            hash_table_exact[len-1]->hash_buckets = malloc(sizeof(entry)*10);
+            hash_table_exact[len-1]->hash_buckets = malloc(sizeof(entry)*EXACT_HASH_BUCKET);
 
             //initialize hash buckets
-            for(int i=0 ; i<= 9 ;i++){
+            for(int i=0 ; i<= EXACT_HASH_BUCKET-1 ;i++){
                 hash_table_exact[len-1]->hash_buckets[i] = NULL;
             }
 
@@ -812,16 +554,16 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
         int len = strlen(read_word);
         //printf("%s %d %d %d \n",read_word ,queryId, dist, type );
 
-        int word_hash_value = hash(read_word)%10;
+        int word_hash_value = hash(read_word)%HAMMING_HASH_BUCKET;
         //printf("Word %s hashes to %d\n",read_word,word_hash_value);
         if(hash_tables_hamming[len-1] == NULL){
 
             //initialize hashtable 
             hash_tables_hamming[len-1] = malloc(sizeof(Hash_table));
-            hash_tables_hamming[len-1]->hash_buckets = malloc(sizeof(Hash_Bucket*)*10);
+            hash_tables_hamming[len-1]->hash_buckets = malloc(sizeof(Hash_Bucket*)*HAMMING_HASH_BUCKET);
             
             //initialize hash buckets
-            for(int i=0 ; i<= 9 ;i++){
+            for(int i=0 ; i<= HAMMING_HASH_BUCKET-1 ;i++){
                 hash_tables_hamming[len-1]->hash_buckets[i] = NULL;
             }
             //hash word to find bucket
@@ -894,128 +636,52 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
 
 }
 
-void print_query_hash_buckets(){
-    for(int i=0; i<= QUERY_HASH_BUCKETS-1 ; i++){
-        if(Q_Hash_Table->query_hash_buckets[i] == NULL){
-            printf("buckets for  %d are null\n",i);
-        }
-    }
-}
+//----------------------------------------Sigmod functions
 
-void print_hash_table_exact(Hash_table_exact** hash_table_exact){
-    for(int i=0; i<=28; i++){
-        if(hash_table_exact[i] != NULL){
-            printf("\nPrinting len %d\n",i);
-            for(int j=0; j< 10; j++){
-                if( hash_table_exact[i]->hash_buckets[j] != NULL){
-                    printf("Printing bucket %d\n",j);
-                    entry temp = hash_table_exact[i]->hash_buckets[j]; 
-                    while(temp != NULL){
-                        printf("%s     ->\n\n",temp->this_word);
-                        Payload* temp_payload = temp->payload;
-                        while(temp_payload != NULL){
-                            printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
-                            temp_payload = temp_payload->next;
-                        }
-                        temp =temp->next;
-                    }
-                }
-            }
-        }
-    }
-}
 
-void delete_hash_tables_hamming(){
-    
-    for(int i=0; i <= 28; i++){
-        //if this hash table has been allocated, free it; else move on
-        if(hash_tables_hamming[i] != NULL){
-            for(int j=0; j <= 9; j++){
-                //free the hash_table itself
-                Hash_Bucket* temp ; 
-                while(hash_tables_hamming[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
-                    temp = hash_tables_hamming[i]->hash_buckets[j];
-                    hash_tables_hamming[i]->hash_buckets[j] = hash_tables_hamming[i]->hash_buckets[j]->next;
-                    free(temp); 
-                }
-            }
-            free(hash_tables_hamming[i]->hash_buckets);
-            free(hash_tables_hamming[i]);
+ErrorCode InitializeIndex(){
 
-            //if hash table has been initialized then we have at least a root for a bk of this length
-            //free the bk trees starting from their roots
-            destroy_entry_index(&hamming_root_table[i]);
-        }
+    for(int i = 0; i<BLOOM_FILTER_SIZE; i++){
+        bloom_filter_exact[i] = 0;
     }
 
-    //finally, free both arrays
-    free(hash_tables_hamming);
-    free(hamming_root_table);
-}
-
-void delete_hash_tables_exact(){
-    for(int i=0; i <= 28; i++){
-        //if this hash table has been allocated, free it; else move on
-        if(hash_table_exact[i] != NULL){
-            for(int j=0; j <= 9; j++){
-                //free the hash_table itself
-                entry temp ; 
-                while(hash_table_exact[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
-                    temp = hash_table_exact[i]->hash_buckets[j];
-                    hash_table_exact[i]->hash_buckets[j] = hash_table_exact[i]->hash_buckets[j]->next;
-                    destroy_entry(&temp); 
-                }
-            }
-            free(hash_table_exact[i]->hash_buckets);
-            free(hash_table_exact[i]);
-        }
+    Q_Hash_Table = malloc(sizeof(Query_Hash_Table));
+    Q_Hash_Table->query_hash_buckets = malloc(sizeof(Query*)*QUERY_HASH_BUCKETS);
+    for(int i=0; i<= QUERY_HASH_BUCKETS-1; i++){
+        Q_Hash_Table->query_hash_buckets[i] = NULL;
     }
-    free(hash_table_exact);
-}
 
-void lookup_exact(const word* w,Hash_table_exact** hash_table_exact){
-    for(int i=0; i<=28; i++){
-        if(hash_table_exact[i] != NULL){
-            for(int j=0; j< 10; j++){
-                if( hash_table_exact[i]->hash_buckets[j] != NULL){
-                    entry temp = hash_table_exact[i]->hash_buckets[j]; 
-                    while(temp != NULL){
-                        if (strcmp(temp->this_word,w) == 0){
-                            //printf("%s     ->\n\n",temp->this_word);
-                            if(r_node == NULL){
-                                r_node = malloc(sizeof(result_node));
-                                r_node->next = NULL;
-                                r_node->this_entry = temp;
-                            }else{
-                                result_node* current = r_node;
-                                int found = -1;
-                                while(current != NULL){
-                                    if(strcmp(current->this_entry->this_word,w) == 0){
-                                        found = 1;
-                                        break;
-                                    }
-                                    current = current->next;
-                                }
-                                if(found == -1){
-                                    result_node* new_node = malloc(sizeof(result_node));
-                                    new_node->next = NULL;
-                                    new_node->this_entry = temp; 
-
-                                    result_node* second = r_node->next;
-                                    r_node->next = new_node;
-                                    new_node->next = second;
-                                }
-                            }                         
-                        }
-                        temp =temp->next;
-                    }
-                }
-            }
-        }
+    //Exact matching structures
+    hash_table_exact = malloc(sizeof(Hash_table_exact*)* 29);
+    for(int i = 0; i <=28 ; i++){
+       hash_table_exact[i] = NULL;
     }
+
+    //Hamming distance structures
+    hash_tables_hamming = malloc(sizeof(Hash_table*)* 29);
+    for(int i = 0; i <=28 ; i++){
+       hash_tables_hamming[i] = NULL;
+    }
+
+    hamming_root_table = malloc(sizeof(bk_index)*29);
+    for(int i = 0; i <=28 ; i++){
+       hamming_root_table[i] = NULL;
+    }
+
+    hash_tables_edit = malloc(sizeof(Hash_table));
+    hash_tables_edit->hash_buckets = malloc(sizeof(Hash_Bucket*)*EDIT_HASH_BUCKETS);
+    for(int i=0; i< EDIT_HASH_BUCKETS; i++){
+        hash_tables_edit->hash_buckets[i] = NULL;
+    }
+    ix = NULL;
+
+    words_hash_table = malloc(sizeof(Words_Hash_Table));
+    for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
+        words_hash_table->words_hash_buckets[i] = NULL;
+    }
+
+    return EC_SUCCESS;
 }
-
-
 
 ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
 
@@ -1403,58 +1069,49 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
     reset_words_hash_table();
 }
 
-ErrorCode InitializeIndex(){
+ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
 
-    for(int i = 0; i<BLOOM_FILTER_SIZE; i++){
-        bloom_filter_exact[i] = 0;
+    //add the query to the query hash table
+    add_query(query_id%QUERY_HASH_BUCKETS,query_id,query_str, match_type, match_dist);
+
+    //update appropriate data structures
+    if(match_type == 0){
+        deduplicate_exact_matching(query_str, query_id, match_dist, match_type);
+    }else if(match_type == 1){
+        deduplicate_hamming(query_str, query_id, match_dist, match_type);
+    }else if(match_type == 2){
+        deduplicate_edit_distance(query_str, query_id, match_dist, match_type, &ix);
     }
-
-    Q_Hash_Table = malloc(sizeof(Query_Hash_Table));
-    Q_Hash_Table->query_hash_buckets = malloc(sizeof(Query*)*QUERY_HASH_BUCKETS);
-    for(int i=0; i<= QUERY_HASH_BUCKETS-1; i++){
-        Q_Hash_Table->query_hash_buckets[i] = NULL;
-    }
-
-    //Exact matching structures
-    hash_table_exact = malloc(sizeof(Hash_table_exact*)* 29);
-    for(int i = 0; i <=28 ; i++){
-       hash_table_exact[i] = NULL;
-    }
-
-    //Hamming distance structures
-    hash_tables_hamming = malloc(sizeof(Hash_table*)* 29);
-    for(int i = 0; i <=28 ; i++){
-       hash_tables_hamming[i] = NULL;
-    }
-
-    hamming_root_table = malloc(sizeof(bk_index)*29);
-    for(int i = 0; i <=28 ; i++){
-       hamming_root_table[i] = NULL;
-    }
-
-    hash_tables_edit = malloc(sizeof(Hash_table));
-    hash_tables_edit->hash_buckets = malloc(sizeof(Hash_Bucket*)*EDIT_HASH_BUCKETS);
-    for(int i=0; i< EDIT_HASH_BUCKETS; i++){
-        hash_tables_edit->hash_buckets[i] = NULL;
-    }
-    ix = NULL;
-
-    words_hash_table = malloc(sizeof(Words_Hash_Table));
-    for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
-        words_hash_table->words_hash_buckets[i] = NULL;
-    }
-
-    return EC_SUCCESS;
 }
 
-int strlen_my(const char* word){
-    int len = 4;
-    while(word[len] != '\0'){
-        len++;
+ErrorCode EndQuery(QueryID query_id){
+	// Remove this query from the active query set
+
+    Query* bucket = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
+    //we are freeing the first bucket
+    if(bucket != NULL && bucket->query_id == query_id){
+        Query* temp = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
+        Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS] = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS]->next;
+        free(temp);
+        return EC_SUCCESS;
     }
-    return len;
+
+    Query* bucket_prev = bucket;
+    while(bucket != NULL){
+        if(bucket->query_id == query_id){
+            bucket_prev->next = bucket->next;
+            free(bucket);
+            return EC_SUCCESS;
+        }
+        bucket_prev = bucket;
+        bucket = bucket->next;
+    }
+	return EC_SUCCESS;
 }
 
+
+
+//adds query to query hashtabel
 ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
     if(Q_Hash_Table->query_hash_buckets[bucket_num] == NULL){
         //initialize bucket
@@ -1509,61 +1166,9 @@ ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, Ma
 
 }
 
-ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
-    //printf(" %d \n",query_id);
-    //add the query to the query hash table
 
-    //free result lists
-    while(r_node != NULL){
-        result_node* temp = r_node; 
-        r_node = r_node->next;
-        free(temp);
-    }
 
-    while(r_node_bk_edit != NULL){
-        result_node_bk* temp = r_node_bk_edit; 
-        r_node_bk_edit = r_node_bk_edit->next;
-        free(temp);
-    }
-
-    while(r_node_bk_hamming != NULL){
-        result_node_bk* temp = r_node_bk_hamming; 
-        r_node_bk_hamming = r_node_bk_hamming->next;
-        free(temp);
-    }
-
-    add_query(query_id%QUERY_HASH_BUCKETS,query_id,query_str, match_type, match_dist);
-
-    //update appropriate data structures
-    if(match_type == 0){
-        deduplicate_exact_matching(query_str, query_id, match_dist, match_type);
-    }else if(match_type == 1){
-        deduplicate_hamming(query_str, query_id, match_dist, match_type);
-    }else if(match_type == 2){
-        deduplicate_edit_distance(query_str, query_id, match_dist, match_type, &ix);
-    }
-}
-
-void print_query_list(){
-    int count = 0;
-    for(int i=0; i<=9; i++){
-        printf("Printing Bucket %d\n",i);
-        if(Q_Hash_Table->query_hash_buckets[i] != NULL ){
-            Query* current = Q_Hash_Table->query_hash_buckets[i];
-            while(current != NULL){
-                printf("%d ->",current->query_id);
-                count++;
-                current = current->next;
-            }
-        }
-        printf("\n");
-    }
-    printf("I have stored %d queries total\n",count);
-}
-
-void match_query(result_node* head){
-
-}
+//--------------------------------------------destructors
 
 ErrorCode DestroyIndex(){
 
@@ -1614,6 +1219,74 @@ ErrorCode DestroyIndex(){
     free_words_hash_table();
 }
 
+void delete_hash_tables_edit(){
+
+        //if this hash table has been allocated, free it; else move on
+        if(hash_tables_edit != NULL){
+            for(int j=0; j < EDIT_HASH_BUCKETS; j++){
+                //Hash_Bucket* current = hash_tables[i]->hash_buckets[j];
+                    Hash_Bucket* temp ; 
+                    while(hash_tables_edit->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
+                        temp = hash_tables_edit->hash_buckets[j];
+                        hash_tables_edit->hash_buckets[j] = hash_tables_edit->hash_buckets[j]->next;
+                        free(temp); 
+                    }
+            }
+            free(hash_tables_edit->hash_buckets);
+            free(hash_tables_edit);
+        }
+
+    destroy_entry_index(&ix);
+}
+
+void delete_hash_tables_hamming(){
+    
+    for(int i=0; i <= 28; i++){
+        //if this hash table has been allocated, free it; else move on
+        if(hash_tables_hamming[i] != NULL){
+            for(int j=0; j <= 9; j++){
+                //free the hash_table itself
+                Hash_Bucket* temp ; 
+                while(hash_tables_hamming[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
+                    temp = hash_tables_hamming[i]->hash_buckets[j];
+                    hash_tables_hamming[i]->hash_buckets[j] = hash_tables_hamming[i]->hash_buckets[j]->next;
+                    free(temp); 
+                }
+            }
+            free(hash_tables_hamming[i]->hash_buckets);
+            free(hash_tables_hamming[i]);
+
+            //if hash table has been initialized then we have at least a root for a bk of this length
+            //free the bk trees starting from their roots
+            destroy_entry_index(&hamming_root_table[i]);
+        }
+    }
+
+    //finally, free both arrays
+    free(hash_tables_hamming);
+    free(hamming_root_table);
+}
+
+void delete_hash_tables_exact(){
+    for(int i=0; i <= 28; i++){
+        //if this hash table has been allocated, free it; else move on
+        if(hash_table_exact[i] != NULL){
+            for(int j=0; j <= 9; j++){
+                //free the hash_table itself
+                entry temp ; 
+                while(hash_table_exact[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
+                    temp = hash_table_exact[i]->hash_buckets[j];
+                    hash_table_exact[i]->hash_buckets[j] = hash_table_exact[i]->hash_buckets[j]->next;
+                    destroy_entry(&temp); 
+                }
+            }
+            free(hash_table_exact[i]->hash_buckets);
+            free(hash_table_exact[i]);
+        }
+    }
+    free(hash_table_exact);
+}
+
 void free_words_hash_table(){
     for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
         while(words_hash_table->words_hash_buckets[i] != NULL){
@@ -1645,88 +1318,73 @@ void reset_words_hash_table(){
     }    
 }
 
-ErrorCode EndQuery(QueryID query_id){
-	// Remove this query from the active query set
 
-    Query* bucket = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
-    //we are freeing the first bucket
-    if(bucket != NULL && bucket->query_id == query_id){
-        Query* temp = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
-        Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS] = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS]->next;
-        free(temp);
-        return EC_SUCCESS;
-    }
+//----------------------------------print functions used for debugging perposes
 
-    Query* bucket_prev = bucket;
-    while(bucket != NULL){
-        if(bucket->query_id == query_id){
-            bucket_prev->next = bucket->next;
-            free(bucket);
-            return EC_SUCCESS;
-        }
-        bucket_prev = bucket;
-        bucket = bucket->next;
-    }
-	return EC_SUCCESS;
-}
-// size_t strlen_my(const char *str)
-// {
-//     const char *cptr = str;
-//     uint32_t i, *s;
-//     size_t ctr = 0;
 
-//     /* Satisfy alignment requirements */
-//     while((uintptr_t)cptr & (sizeof(uint32_t)-1))
-//     {
-//         if(!*cptr)
-//             return cptr - str;
-//         cptr++;
-//     }
-
-//     s = (uint32_t *)cptr;
-
-//     do {
-//         i = s[ctr];
-//         /* Mask off high bit */
-//         i &= HIGH_MASK;
-//         /* subtract 0x01 from each byte,
-//            giving a set high bit if it
-//            was zero */
-//         i -= LOW_MASK;
-//         ctr++;
-//             /* Test for the set high bit
-//                and if it is found exit */
-//     } while(!(i &= NOT_HIGH_MASK));
-
-//     /* Find the first high bit set and
-//        create the corresponding byte index */
-//     i = div8(ffs(i));
-//     /* Remove the counter increment from the
-//        loop and multiply it by 4 to find the
-//        rest of the byte index */
-//     ctr = mul4_32(ctr - 1);
-
-//     /* Return the combined byte index with 1
-//        removed so it doesn't include the null
-//        terminator itself */
-//     return (i + ctr - 1);
-// }
-
-uint32_t gatopeich_strlen32(const char* str)
-{
-    uint32_t *u32 = (uint32_t*)str, u, abcd, i=0;
-    while(1)
-    {
-        u = u32[i++];
-        abcd = (u-0x01010101) & 0x80808080;
-        if (abcd && // If abcd is not 0, we have NUL or a non-ASCII char > 127...
-             (abcd &= ~u)) // ... Discard non-ASCII chars
-        {
-        #if BYTE_ORDER == BIG_ENDIAN
-            return 4*i - (abcd&0xffff0000 ? (abcd&0xff000000?4:3) : abcd&0xff00?2:1);
-        #else
-            return 4*i - (abcd&0xffff ? (abcd&0xff?4:3) : abcd&0xff0000?2:1);
-        #endif
+void print_hash_tables(Hash_table** hash_table){
+    for(int i=0 ; i <= 28; i++){
+        if(hash_table[i] != NULL){
+            for(int j=0; j <= 9; j++){
+                Hash_Bucket* current = hash_table[i]->hash_buckets[j];
+                while(current != NULL){
+                    printf("Printing length %d hash %d:\n",i+1,j);
+                    //access the bk node that this bucket points to
+                    printf("%s     ->",current->node->this_word);
+                    current = current->next;
+                }printf("\n");
+            }
+            printf("Length %d finished\n\n",i+1);
         }
     }
 }
+
+void print_query_hash_buckets(){
+    for(int i=0; i<= QUERY_HASH_BUCKETS-1 ; i++){
+        if(Q_Hash_Table->query_hash_buckets[i] == NULL){
+            printf("buckets for  %d are null\n",i);
+        }
+    }
+}
+
+void print_hash_table_exact(Hash_table_exact** hash_table_exact){
+    for(int i=0; i<=28; i++){
+        if(hash_table_exact[i] != NULL){
+            printf("\nPrinting len %d\n",i);
+            for(int j=0; j< 10; j++){
+                if( hash_table_exact[i]->hash_buckets[j] != NULL){
+                    printf("Printing bucket %d\n",j);
+                    entry temp = hash_table_exact[i]->hash_buckets[j]; 
+                    while(temp != NULL){
+                        printf("%s     ->\n\n",temp->this_word);
+                        Payload* temp_payload = temp->payload;
+                        while(temp_payload != NULL){
+                            printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+                            temp_payload = temp_payload->next;
+                        }
+                        temp =temp->next;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void print_query_list(){
+    int count = 0;
+    for(int i=0; i<=9; i++){
+        printf("Printing Bucket %d\n",i);
+        if(Q_Hash_Table->query_hash_buckets[i] != NULL ){
+            Query* current = Q_Hash_Table->query_hash_buckets[i];
+            while(current != NULL){
+                printf("%d ->",current->query_id);
+                count++;
+                current = current->next;
+            }
+        }
+        printf("\n");
+    }
+    printf("I have stored %d queries total\n",count);
+}
+
+
