@@ -88,6 +88,8 @@ int main(int argc, char* argv[]){
 
                 if(query_ids[i] == qid){
                     //printf("comparing %d with %d and are the same\n",query_ids[i],qid);
+                }else if(doc_id != id){
+                    printf("comparing doc with wrong results\n");
                 }else{
                     printf("Found difference in document %d",id);
                 }
