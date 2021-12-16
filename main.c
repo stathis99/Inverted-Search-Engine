@@ -30,8 +30,8 @@ int main(int argc, char* argv[]){
     //read and store all queries
     char ch;
 	unsigned int id;
-    int fres;
-
+    int fres;int doc=0;
+extern int results_found;
     //start processing queries
     while(1){
         fres = fscanf(fp, "%c %u ", &ch, &id);
@@ -58,19 +58,37 @@ int main(int argc, char* argv[]){
             if(EOF==fscanf(fp, "%*u %[^\n\r] ", temp)){
 				printf("Corrupted Test File at Read Document.\n");
 				exit(-1);
-			}
+			}doc=id;
 		    ErrorCode err = MatchDocument(id, temp);
 
-}else if(ch == 'r'){
+        }else if(ch == 'r'){
             unsigned int num_res=0;
 			if(EOF==fscanf(fp, "%d ", &num_res)){
                 return 1;
 		    }
-            query_ids* temp = queries_head;
+            
 
             int qid;
 
-            printf("correct results of doc %d:\n",qid);
+			unsigned int doc_id=0;if(id==780){doc_id=780;}
+			unsigned int num_res1=0;
+			unsigned int* query_ids=0;
+            ErrorCode err=GetNextAvailRes(&doc_id, &num_res1, &query_ids);
+            if(num_res1 != num_res){
+                printf("Numbers calculated != numbers in file for doc %d. Calculated %d but in file %d\n",doc,num_res1,num_res);
+            }
+
+            // if( doc_id == 780){
+            // for(int i=0;i<(int)num_res1;i++)
+			// {
+            //     printf("%d ->",query_ids[i]);
+            // }
+            // printf("\n\n");
+            // }
+
+
+
+            
 			for(int i=0;i<(int)num_res;i++)
 			{
 				if(EOF==fscanf(fp, "%u ", &qid)){
@@ -79,17 +97,24 @@ int main(int argc, char* argv[]){
 					return 1;
 				}
 
-                if(temp->queryID == qid){
-                        
-                        temp = temp->next;
+
+                // if(doc_id == 780){
+                //     printf("%d ->",qid);
+                // }
+
+
+
+                if(query_ids[i] == qid){
                     
                 }else{
                     printf("Found difference in document %d",id);
                 }
-				
-                printf("%d ->", qid);
-			}
-            printf("\n\n");
+
+                //printf("%d ->", qid);
+			}free(query_ids);
+          //  printf("\n\n");
+
+        //print_index();
 
         }else if(ch=='e')
 		{

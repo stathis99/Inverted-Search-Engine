@@ -26,9 +26,6 @@ enum error_code { SUCCESS = 0, ERROR = 1, NULL_POINTER = 2};
 enum match_type { EDIT_DIST = 1, HAMMING_DIST = 2};
 
 
-//============================================================ giti exoume 2 type defs
-
-
 //structs for entry. Entry stores a word and has a payload with all the queries that contain this word.
 typedef char word;
 
@@ -66,6 +63,7 @@ typedef struct result_node{
 typedef struct result_node_bk{
     struct result_node_bk* next;
     bk_index this_entry;
+    int my_threshold;
 }result_node_bk;
 
 
@@ -152,3 +150,5 @@ ErrorCode EndQuery(QueryID query_id);
 void print_query_hash_buckets();
 void free_words_hash_table();
 void reset_words_hash_table();
+ErrorCode GetNextAvailRes(DocID* p_doc_id, unsigned int* p_num_res, QueryID** p_query_ids);
+void print_index();

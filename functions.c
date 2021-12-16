@@ -23,6 +23,7 @@ result_node_bk* r_node_bk_hamming = NULL;
 result_node_bk* r_node_bk_edit = NULL;
 
 query_ids* queries_head = NULL;
+int results_found = 0;
 
 Words_Hash_Table* words_hash_table = NULL;
 
@@ -201,21 +202,31 @@ bk_index bk_create_node(bk_index* ix,const word* entry_word,int weight,int query
 
 //looks for queries in paload list of a word and updates the result list. this function is called if a doc word matches with a word in a bk tree.
 enum error_code look_for_threshold(struct Payload* payload,int threshold,const word* q_w,const word* w,int match_type ,bk_index temp){
+    
     while(payload != NULL){
-        if(payload->threshold == threshold){
-            //printf("%s = %s q:%d t:%d \n",q_w,w,payload->queryId,payload->threshold);
+    if(payload->threshold == threshold){
+    // if(payload->queryId == 1630){
+ 
+    // }           
             if(match_type == 1){            //we are using edit
+
+                     
                 if (strcmp(temp->this_word,q_w) == 0){
+                    //printf("%s = %s q:%d t:%d \n",q_w,w,payload->queryId,payload->threshold);
                             //printf("%s     ->\n\n",temp->this_word);
                             if(r_node_bk_edit == NULL){
                                 r_node_bk_edit = malloc(sizeof(result_node_bk));
                                 r_node_bk_edit->next = NULL;
-                                r_node_bk_edit->this_entry = temp;                         
+                                r_node_bk_edit->this_entry = temp;   
+                                r_node_bk_edit->my_threshold = threshold;                      
                             }else{
                                 result_node_bk* current = r_node_bk_edit;
                                 int found = -1;
                                 while(current != NULL){
                                     if(strcmp(current->this_entry->this_word,q_w) == 0){
+                                        if(current->my_threshold< threshold){
+                                             current->my_threshold = threshold;   
+                                        }
                                         found = 1;
                                         break;
                                     }
@@ -224,7 +235,8 @@ enum error_code look_for_threshold(struct Payload* payload,int threshold,const w
                                 if(found == -1){
                                     result_node_bk* new_node = malloc(sizeof(result_node_bk));
                                     new_node->next = NULL;
-                                    new_node->this_entry = temp; 
+                                    new_node->this_entry = temp;
+                                    new_node->my_threshold = threshold; 
 
                                     result_node_bk* second = r_node_bk_edit->next;
                                     r_node_bk_edit->next = new_node;
@@ -279,6 +291,10 @@ enum error_code lookup_entry_index(const word* w,int docWordLen, bk_index* ix, i
 
     //if ix keyword is close to doc word then look for queries id in payload list that match the given threshold
     if( dist <= threshold ){
+        // if(strcmp((*ix)->this_word,"file") == 0){
+        //     printf("%s = %s \n",w,(*ix)->this_word);
+        // }
+
         look_for_threshold((*ix)->payload,threshold,(*ix)->this_word,w,match_type,*ix);
     }
 
@@ -584,8 +600,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
             }
             
 
-        }
-        else{              //this hash table has been initialized
+        }else{              //this hash table has been initialized
         
             //search if it exists in any of the buckets, starting from the first
             Hash_Bucket* current = hash_tables_hamming[len-1]->hash_buckets[word_hash_value];
@@ -685,16 +700,10 @@ ErrorCode InitializeIndex(){
 
 ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
 
-    
     const word* read_word;
     char* temp = (char*)doc_str; 
     read_word = strtok(temp, " ");
-    int count=0;
-    int counte=0;
-    int counth=0;
-    int countex=0;
 
-    int querys_matched = 0;
     int docWordLen;
 
     //free result lists from previous doc
@@ -728,7 +737,9 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
     r_node_bk_edit = NULL;
 
     queries_head = NULL;
+    results_found = 0;
 
+    //for every word in document
     while(read_word != NULL){
         docWordLen = strlen(read_word);
 
@@ -774,8 +785,8 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         if(hamming_root_table[docWordLen-1] != NULL){
             for(int i=1;i<=3;i++){
                 lookup_entry_index(read_word,docWordLen,&hamming_root_table[docWordLen-1],i,2);
-                }
             }
+        }
 
             
         //look in exact matching
@@ -821,7 +832,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                     }
                     if(to_find == 0){
                         //printf("Query %d fully matched\n", temp_payload->queryId);
-                        querys_matched;
+                        results_found++;
                         if(queries_head == NULL){       //first query, insert it at head
                             queries_head = malloc(sizeof(query_ids));
                             queries_head->next = NULL;
@@ -880,12 +891,22 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         temp_node1 = temp_node1->next;
     }
     
+
+
+
+    //printf("\n\n\n\n");
    //printf("RESULTS FROM Edit: \n\n");
     result_node_bk* temp_node2 = r_node_bk_edit;
     while(temp_node2 != NULL){
-        //printf("%s ->",temp_node2->this_entry->this_word);
+
         Payload* temp_payload = temp_node2->this_entry->payload;
+        // if(doc_id == 780){
+        //     printf("%s thres: %d ->\n",temp_node2->this_entry->this_word,temp_node2->my_threshold);
+        // }
         while(temp_payload != NULL){
+        // if(doc_id == 780){
+        //     printf("%d : %d\n",temp_payload->queryId,temp_payload->threshold );
+        // }
             //before checking payload, check that this query hasnt been matched yet
             query_ids* temp_queries_head = queries_head;
             int matched = 0;
@@ -906,7 +927,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                     for(int i=0; i<bucket->query_words; i++){
                         result_node_bk* temp_list = r_node_bk_edit;
                         while(temp_list != NULL){
-                            if(strcmp(bucket->words[i],temp_list->this_entry->this_word) == 0){
+                            if(strcmp(bucket->words[i],temp_list->this_entry->this_word) == 0 && bucket->match_dist >= temp_list->my_threshold){
                                 to_find--;
                                 break;
                             }
@@ -915,7 +936,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                     }
                     if(to_find == 0){
                         //printf("Query %d fully matched\n", temp_payload->queryId);
-                        querys_matched;
+                        results_found++;
                         if(queries_head == NULL){       //first query, insert it at head
                             queries_head = malloc(sizeof(query_ids));
                             queries_head->next = NULL;
@@ -970,7 +991,6 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
             }
             temp_payload = temp_payload->next;
         }
-        //printf("\n");
         temp_node2 = temp_node2->next;
     }
     
@@ -1007,7 +1027,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                     }
                     if(to_find == 0){
                         //printf("Query %d fully matched\n", temp_payload->queryId);
-                        querys_matched;
+                        results_found++;
                         if(queries_head == NULL){       //first query, insert it at head
                             queries_head = malloc(sizeof(query_ids));
                             queries_head->next = NULL;
@@ -1066,10 +1086,11 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         temp_node3 = temp_node3->next;
     }
 
+
     reset_words_hash_table();
 }
 
-ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
+ErrorCode StartQuery(QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
 
     //add the query to the query hash table
     add_query(query_id%QUERY_HASH_BUCKETS,query_id,query_str, match_type, match_dist);
@@ -1244,7 +1265,7 @@ void delete_hash_tables_hamming(){
     for(int i=0; i <= 28; i++){
         //if this hash table has been allocated, free it; else move on
         if(hash_tables_hamming[i] != NULL){
-            for(int j=0; j <= 9; j++){
+            for(int j=0; j < HAMMING_HASH_BUCKET; j++){
                 //free the hash_table itself
                 Hash_Bucket* temp ; 
                 while(hash_tables_hamming[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
@@ -1271,7 +1292,7 @@ void delete_hash_tables_exact(){
     for(int i=0; i <= 28; i++){
         //if this hash table has been allocated, free it; else move on
         if(hash_table_exact[i] != NULL){
-            for(int j=0; j <= 9; j++){
+            for(int j=0; j < EXACT_HASH_BUCKET; j++){
                 //free the hash_table itself
                 entry temp ; 
                 while(hash_table_exact[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
@@ -1386,5 +1407,24 @@ void print_query_list(){
     }
     printf("I have stored %d queries total\n",count);
 }
+
+ErrorCode GetNextAvailRes(DocID* p_doc_id, unsigned int* p_num_res, QueryID** p_query_ids){
+
+    *p_num_res = results_found;
+    *p_query_ids = (int*)malloc(sizeof(int)*results_found);
+    query_ids* temp = queries_head;
+    for(int i=0; i<results_found; i++){
+        (*p_query_ids)[i] = temp->queryID;
+        temp = temp->next;
+    }
+
+	// Get the first undeliverd resuilt from "docs" and return it
+	// *p_doc_id=0; *p_num_res=0; *p_query_ids=0;
+	// if(docs.size()==0) return EC_NO_AVAIL_RES;
+	// *p_doc_id=docs[0].doc_id; *p_num_res=docs[0].num_res; *p_query_ids=docs[0].query_ids;
+	// docs.erase(docs.begin());
+	// return EC_SUCCESS;
+}
+
 
 
