@@ -224,7 +224,7 @@ enum error_code look_for_threshold(struct Payload* payload,int threshold,const w
                                 int found = -1;
                                 while(current != NULL){
                                     if(strcmp(current->this_entry->this_word,q_w) == 0){
-                                        if(current->my_threshold< threshold){
+                                        if(current->my_threshold > threshold){
                                              current->my_threshold = threshold;   
                                         }
                                         found = 1;

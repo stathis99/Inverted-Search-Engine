@@ -114,7 +114,6 @@ extern int results_found;
 			}free(query_ids);
           //  printf("\n\n");
 
-        //print_index();
 
         }else if(ch=='e')
 		{
