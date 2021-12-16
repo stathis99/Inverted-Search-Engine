@@ -26,6 +26,7 @@ query_ids* queries_head = NULL;
 int results_found = 0;
 
 Words_Hash_Table* words_hash_table = NULL;
+int last_doc_id;
 
 //----------------------------------------distance functions
 
@@ -201,19 +202,50 @@ bk_index bk_create_node(bk_index* ix,const word* entry_word,int weight,int query
 }
 
 //looks for queries in paload list of a word and updates the result list. this function is called if a doc word matches with a word in a bk tree.
-enum error_code look_for_threshold(struct Payload* payload,int threshold,const word* q_w,const word* w,int match_type ,bk_index temp){
+enum error_code look_for_threshold_hamming(struct Payload* payload,int threshold,const word* q_w,const word* w,bk_index temp){
     
     while(payload != NULL){
-    if(payload->threshold == threshold){
-    // if(payload->queryId == 1630){
- 
-    // }           
-            if(match_type == 1){            //we are using edit
+        if(payload->threshold == threshold){
+                if (strcmp(temp->this_word,q_w) == 0){
+                        
+                        if(r_node_bk_hamming == NULL){
+                            r_node_bk_hamming = malloc(sizeof(result_node_bk));
+                            r_node_bk_hamming->next = NULL;
+                            r_node_bk_hamming->this_entry = temp;                         
+                        }else{
+                            result_node_bk* current = r_node_bk_hamming;
+                            int found = -1;
+                            while(current != NULL){
+                                if(strcmp(current->this_entry->this_word,q_w) == 0){
+                                   found = 1;
+                                    break;
+                                }
+                                current = current->next;
+                            }
+                            if(found == -1){
+                                result_node_bk* new_node = malloc(sizeof(result_node_bk));
+                                new_node->next = NULL;
+                                new_node->this_entry = temp; 
 
+                                result_node_bk* second = r_node_bk_hamming->next;
+                                r_node_bk_hamming->next = new_node;
+                                new_node->next = second;                
+                            }
+                        }                         
+                    }
+
+        }
+        payload = payload->next;
+    }
+}
+
+enum error_code look_for_threshold_edit(struct Payload* payload,int threshold,const word* q_w,const word* w,bk_index temp){
+    
+    while(payload != NULL){
+        if(payload->threshold == threshold){
                      
                 if (strcmp(temp->this_word,q_w) == 0){
-                    //printf("%s = %s q:%d t:%d \n",q_w,w,payload->queryId,payload->threshold);
-                            //printf("%s     ->\n\n",temp->this_word);
+
                             if(r_node_bk_edit == NULL){
                                 r_node_bk_edit = malloc(sizeof(result_node_bk));
                                 r_node_bk_edit->next = NULL;
@@ -244,65 +276,51 @@ enum error_code look_for_threshold(struct Payload* payload,int threshold,const w
                                 }
                             }                         
                         }
-            }else if(match_type == 2){          //we are using hamming
-                if (strcmp(temp->this_word,q_w) == 0){
-                            //printf("%s     ->\n\n",temp->this_word);
-                            if(r_node_bk_hamming == NULL){
-                                r_node_bk_hamming = malloc(sizeof(result_node_bk));
-                                r_node_bk_hamming->next = NULL;
-                                r_node_bk_hamming->this_entry = temp;                         
-                            }else{
-                                result_node_bk* current = r_node_bk_hamming;
-                                int found = -1;
-                                while(current != NULL){
-                                    if(strcmp(current->this_entry->this_word,q_w) == 0){
-                                        found = 1;
-                                        break;
-                                    }
-                                    current = current->next;
-                                }
-                                if(found == -1){
-                                    result_node_bk* new_node = malloc(sizeof(result_node_bk));
-                                    new_node->next = NULL;
-                                    new_node->this_entry = temp; 
-
-                                    result_node_bk* second = r_node_bk_hamming->next;
-                                    r_node_bk_hamming->next = new_node;
-                                    new_node->next = second;                
-                                }
-                            }                         
-                        }
-            }
         }
         payload = payload->next;
     }
 }
 
-//looks for words tha match with a given doc word in a bk tree 
-enum error_code lookup_entry_index(const word* w,int docWordLen, bk_index* ix, int threshold,int match_type){
+//looks for words that match with a given doc word in a bk tree 
+enum error_code lookup_entry_index_edit(const word* w,int docWordLen, bk_index* ix, int threshold){
     bk_index temp_child  = (*ix)->child;
-    int dist;
 
-    if(match_type == 1){
-        dist = distance(w,docWordLen,(*ix)->this_word,(*ix)->len);
-    }else{
-        dist = hamming_distance(w,(*ix)->this_word,docWordLen);
-    }
+    int dist = distance(w,docWordLen,(*ix)->this_word,(*ix)->len);
 
     //if ix keyword is close to doc word then look for queries id in payload list that match the given threshold
     if( dist <= threshold ){
-        // if(strcmp((*ix)->this_word,"file") == 0){
-        //     printf("%s = %s \n",w,(*ix)->this_word);
-        // }
 
-        look_for_threshold((*ix)->payload,threshold,(*ix)->this_word,w,match_type,*ix);
+        look_for_threshold_edit((*ix)->payload,threshold,(*ix)->this_word,w,*ix);
     }
 
     //traverse the tree retrospectively 
     while(temp_child != NULL){
         //if distance child from the parent is  [𝑑 − 𝑛, 𝑑 + 𝑛] then call retrospectively 
         if(temp_child->weight >= dist - threshold && temp_child->weight <= dist + threshold ){
-            lookup_entry_index(w,docWordLen,&temp_child,threshold,match_type);
+            lookup_entry_index_edit(w,docWordLen,&temp_child,threshold);
+        }
+        temp_child = temp_child->next;   
+    }
+    
+    return SUCCESS;
+}
+
+enum error_code lookup_entry_index_hamming(const word* w,int docWordLen, bk_index* ix, int threshold){
+    bk_index temp_child  = (*ix)->child;
+
+    int dist = hamming_distance(w,(*ix)->this_word,docWordLen);
+
+    //if ix keyword is close to doc word then look for queries id in payload list that match the given threshold
+    if( dist <= threshold ){
+
+        look_for_threshold_hamming((*ix)->payload,threshold,(*ix)->this_word,w,*ix);
+    }
+
+    //traverse the tree retrospectively 
+    while(temp_child != NULL){
+        //if distance child from the parent is  [𝑑 − 𝑛, 𝑑 + 𝑛] then call retrospectively 
+        if(temp_child->weight >= dist - threshold && temp_child->weight <= dist + threshold ){
+            lookup_entry_index_hamming(w,docWordLen,&temp_child,threshold);
         }
         temp_child = temp_child->next;   
     }
@@ -380,15 +398,11 @@ enum error_code destroy_entry_index(bk_index* ix){
 }
 
 //adds a node to a given bk tree
-int bk_add_node(bk_index* ix, const word* entry_word,int qWordLen,enum match_type type, bk_index* node, int queryId, int threshold){
+int bk_add_node_edit(bk_index* ix, const word* entry_word,int qWordLen, bk_index* node, int queryId, int threshold){
     bk_index temp_child  = (*ix)->child;
-    int dist;
 
-    if(type == EDIT_DIST){
-        dist = distance(entry_word,qWordLen,(*ix)->this_word,(*ix)->len);
-    }else if(type == HAMMING_DIST){
-        dist = hamming_distance(entry_word,(*ix)->this_word,qWordLen);
-    }
+    int dist = distance(entry_word,qWordLen,(*ix)->this_word,(*ix)->len);
+
     //if ix doesnt have children create a node and set it as his  child
     if(temp_child == NULL){
         *node = bk_create_node(&(*ix)->child, entry_word, dist,queryId,threshold);
@@ -399,7 +413,7 @@ int bk_add_node(bk_index* ix, const word* entry_word,int qWordLen,enum match_typ
 
             //if exists child with same dist go to this child , child
             if(temp_child->weight == dist){
-                bk_add_node(&temp_child ,entry_word,qWordLen,type, node,queryId,threshold);
+                bk_add_node_edit(&temp_child ,entry_word,qWordLen, node,queryId,threshold);
                 return 1;
             }
             //if we wave seen all ix children and there is no child with same distance
@@ -413,6 +427,38 @@ int bk_add_node(bk_index* ix, const word* entry_word,int qWordLen,enum match_typ
     }
     return 1;
 }
+
+int bk_add_node_hamming(bk_index* ix, const word* entry_word,int qWordLen, bk_index* node, int queryId, int threshold){
+    bk_index temp_child  = (*ix)->child;
+
+
+    int dist = hamming_distance(entry_word,(*ix)->this_word,qWordLen);
+
+    //if ix doesnt have children create a node and set it as his  child
+    if(temp_child == NULL){
+        *node = bk_create_node(&(*ix)->child, entry_word, dist,queryId,threshold);
+        return 1; 
+    }else{
+        //for every child of ix 
+        while(temp_child != NULL){
+
+            //if exists child with same dist go to this child , child
+            if(temp_child->weight == dist){
+                bk_add_node_hamming(&temp_child ,entry_word,qWordLen, node,queryId,threshold);
+                return 1;
+            }
+            //if we wave seen all ix children and there is no child with same distance
+            if(temp_child->next == NULL){
+                //add new node at the end of children
+                *node = bk_create_node(&(temp_child->next),entry_word,dist,queryId,threshold);
+                return 1;
+            }
+            temp_child = temp_child -> next;
+        }
+    }
+    return 1;
+}
+
 
 //prints a bk tree
  void print_bk_tree(bk_index ix, int pos){  
@@ -464,7 +510,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
             }else{
 
                 bk_index node = NULL;
-                bk_add_node(ix, read_word,len, 1, &node, queryId,dist);
+                bk_add_node_edit(ix, read_word,len, &node, queryId,dist);
                 hash_tables_edit->hash_buckets[word_hash_value]->node = node;
             }
         }else{
@@ -482,7 +528,7 @@ void deduplicate_edit_distance(const char* temp, unsigned int queryId, int dist,
             if(found == -1){                // it was not found, we shall add it and add it to the list of buckets
 
                 bk_index node = NULL;
-                bk_add_node(ix, read_word,len, 1, &node,queryId,dist);
+                bk_add_node_edit(ix, read_word,len, &node,queryId,dist);
                 //create this hash_bucket to store data
                 Hash_Bucket* new_bucket = malloc(sizeof(Hash_Bucket));
                 new_bucket->node = node;
@@ -594,7 +640,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
                 //unnecessary, just fix struct word
 
                 bk_index node = NULL;
-                bk_add_node(&hamming_root_table[len-1],read_word,len, 1, &node,queryId,dist);
+                bk_add_node_hamming(&hamming_root_table[len-1],read_word,len, &node,queryId,dist);
                 hash_tables_hamming[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_tables_hamming[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }
@@ -609,7 +655,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
                 hash_tables_hamming[len-1]->hash_buckets[word_hash_value] = malloc(sizeof(Hash_Bucket));
 
                 bk_index node = NULL;
-                bk_add_node(&hamming_root_table[len-1], read_word,len, 2, &node,queryId,dist);
+                bk_add_node_hamming(&hamming_root_table[len-1], read_word,len, &node,queryId,dist);
                 hash_tables_hamming[len-1]->hash_buckets[word_hash_value]->node = node;
                 hash_tables_hamming[len-1]->hash_buckets[word_hash_value]->next = NULL;
             }else{
@@ -626,7 +672,7 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
                 if(found == -1){                // it was not found, we shall add it and add it to the list of buckets
 
                     bk_index node = NULL;
-                    bk_add_node(&hamming_root_table[len-1], read_word,len, 2, &node,queryId,dist);
+                    bk_add_node_hamming(&hamming_root_table[len-1], read_word,len, &node,queryId,dist);
                     //create this hash_bucket to store data
                     Hash_Bucket* new_bucket = malloc(sizeof(Hash_Bucket));
                     new_bucket->node = node;
@@ -699,7 +745,7 @@ ErrorCode InitializeIndex(){
 }
 
 ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
-
+    last_doc_id = doc_id;
     const word* read_word;
     char* temp = (char*)doc_str; 
     read_word = strtok(temp, " ");
@@ -779,12 +825,12 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
 
         //look in edit distance
         for(int i=1;i<=3;i++){
-            lookup_entry_index(read_word,docWordLen,&ix,i,1);
+            lookup_entry_index_edit(read_word,docWordLen,&ix,i);
         }
         //look in hamming distance
         if(hamming_root_table[docWordLen-1] != NULL){
             for(int i=1;i<=3;i++){
-                lookup_entry_index(read_word,docWordLen,&hamming_root_table[docWordLen-1],i,2);
+                lookup_entry_index_hamming(read_word,docWordLen,&hamming_root_table[docWordLen-1],i);
             }
         }
 
@@ -1409,7 +1455,7 @@ void print_query_list(){
 }
 
 ErrorCode GetNextAvailRes(DocID* p_doc_id, unsigned int* p_num_res, QueryID** p_query_ids){
-
+    *p_doc_id = last_doc_id;
     *p_num_res = results_found;
     *p_query_ids = (int*)malloc(sizeof(int)*results_found);
     query_ids* temp = queries_head;
@@ -1417,13 +1463,6 @@ ErrorCode GetNextAvailRes(DocID* p_doc_id, unsigned int* p_num_res, QueryID** p_
         (*p_query_ids)[i] = temp->queryID;
         temp = temp->next;
     }
-
-	// Get the first undeliverd resuilt from "docs" and return it
-	// *p_doc_id=0; *p_num_res=0; *p_query_ids=0;
-	// if(docs.size()==0) return EC_NO_AVAIL_RES;
-	// *p_doc_id=docs[0].doc_id; *p_num_res=docs[0].num_res; *p_query_ids=docs[0].query_ids;
-	// docs.erase(docs.begin());
-	// return EC_SUCCESS;
 }
 
 

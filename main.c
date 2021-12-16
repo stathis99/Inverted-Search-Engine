@@ -31,7 +31,7 @@ int main(int argc, char* argv[]){
     char ch;
 	unsigned int id;
     int fres;int doc=0;
-extern int results_found;
+
     //start processing queries
     while(1){
         fres = fscanf(fp, "%c %u ", &ch, &id);
@@ -70,24 +70,13 @@ extern int results_found;
 
             int qid;
 
-			unsigned int doc_id=0;if(id==780){doc_id=780;}
+			unsigned int doc_id=0;
 			unsigned int num_res1=0;
 			unsigned int* query_ids=0;
             ErrorCode err=GetNextAvailRes(&doc_id, &num_res1, &query_ids);
             if(num_res1 != num_res){
                 printf("Numbers calculated != numbers in file for doc %d. Calculated %d but in file %d\n",doc,num_res1,num_res);
             }
-
-            // if( doc_id == 780){
-            // for(int i=0;i<(int)num_res1;i++)
-			// {
-            //     printf("%d ->",query_ids[i]);
-            // }
-            // printf("\n\n");
-            // }
-
-
-
             
 			for(int i=0;i<(int)num_res;i++)
 			{
@@ -97,15 +86,8 @@ extern int results_found;
 					return 1;
 				}
 
-
-                // if(doc_id == 780){
-                //     printf("%d ->",qid);
-                // }
-
-
-
                 if(query_ids[i] == qid){
-                    
+                    //printf("comparing %d with %d and are the same\n",query_ids[i],qid);
                 }else{
                     printf("Found difference in document %d",id);
                 }
