@@ -1,5 +1,5 @@
 #include  "../include/acutest.h"			
-#include "../include/structs.h"
+#include "../include/core.h"
 
 /*void test_entry_list_create(){
 	//initialize entry list

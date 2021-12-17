@@ -1,47 +1,60 @@
+# Copyright (c) 2013 KAUST - InfoCloud Group (All Rights Reserved)
 #
-# In order to execute this "Makefile" just type "make"
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
 #
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+# Authors: Amin Allam  <amin.allam@kaust.edu.sa>,
+#          Fuad Jamour <fuad.jamour@kaust.edu.sa>
+#
+# Current version: 1.0 (initial release)
+	
+TEST_NEW_O=test_driver/test_through.o
+IMPL_O=ref_impl/core.o
 INCLUDE = ./tests
 
-HEADERS = structs.h
-SOURCES0 = main.c functions.c
+CC  = gcc
+CXX = g++
+CFLAGS=-O3 -fPIC -Wall -g -I. -I./include
+CXXFLAGS=$(CFLAGS)
+LDFLAGS=-lpthread
 SOURCES1 = $(INCLUDE)/unit_test.c
-OBJECTS0 = main.o functions.o
 OBJECTS1 = $(INCLUDE)/unit_test.o
-OUT		= project1
 OUTTEST = test
-CC	= gcc
 
-all: $(OBJECTS0) $(OBJECTS1)
-	$(CC) -g $(OBJECTS0) -o $(OUT)
-	rm functions.o main.o
+PROGRAMS=new-testdriver
+TESTS = test
+
+LIBRARY=core
+
+all: $(PROGRAMS) $(OBJECTS1)
+
+lib: $(IMPL_O)
+	$(CC) $(CXXFLAGS) -shared -o lib$(LIBRARY).so $(IMPL_O)
 	
-project1: main.o
-	$(CC) main.o -o $(OUT)
-
-main.o: main.c
-	$(CC) -c main.c 
-
-functions.o:
-	$(CC) -c functions.c
+new-testdriver: lib $(TEST_NEW_O)
+	$(CXX) $(CXXFLAGS) -o testdriver $(TEST_NEW_O) ./lib$(LIBRARY).so
 
 unit_test.o: unit_test.c 
 	$(CC) -c unit_test.c
 
-clean: 
-	rm functions.o main.o $(INCLUDE)/unit_test.o
-
-norun: $(OBJECTS0)
-	$(CC) -g $(OBJECTS0) -o $(OUT)
-
-valgrind: $(OBJECTS0) $(OBJECTS1)
-	$(CC) -g $(OBJECTS0) -o $(OUT)
-	$(CC) -g $(OBJECTS1) -o $(OUTTEST)
-	make clean
-	valgrind ./$(OUT)
-
-test1:
-	./test
-
-
-
+clean:
+	rm -f testdriver lib$(LIBRARY).so result.txt $(INCLUDE)/unit_test.o
+	find . -name '*.o' -print | xargs rm -f
