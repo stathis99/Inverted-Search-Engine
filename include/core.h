@@ -160,7 +160,7 @@ typedef struct Batch_results_list{
 }Batch_results_list;
 
 
-static int distance (const char * word1,int len1,const char * word2, int len2);
+int distance (const char * word1,int len1,const char * word2, int len2);
 int hamming_distance(const char* str1, const char* str2, int len);
 enum error_code create_entry(const word* w, entry* e,unsigned int queryId,int dist);
 enum error_code destroy_entry(entry* e);
@@ -175,7 +175,7 @@ enum error_code look_for_threshold_hamming(struct Payload* payload,int threshold
 enum error_code look_for_threshold_edit(struct Payload* payload,int threshold,const word* q_w,const word* w,bk_index temp);
 int bk_add_node_edit(bk_index* ix,const word* entry_word,int qWordLen, bk_index* node, int queryId, int dist);
 int bk_add_node_hamming(bk_index* ix,const word* entry_word,int qWordLen, bk_index* node, int queryId, int dist);
-unsigned long hash(unsigned char *str);
+unsigned long hash(char *str);
 void delete_hash_tables_edit();
 void print_hash_tables(Hash_table** hash_table);
 void deduplicate_edit_distance(const char* temp, unsigned int , int , int,bk_index* ix);

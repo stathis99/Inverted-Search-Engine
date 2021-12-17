@@ -32,7 +32,7 @@ Batch_results_list* batch_results_list;
 //----------------------------------------distance functions
 
 //calculates levestein distance
-static int distance (const char * word1,int len1, const char * word2,int len2){
+int distance (const char * word1,int len1, const char * word2,int len2){
 
     int matrix[len1 + 1][len2 + 1];
     int i;
@@ -118,11 +118,11 @@ unsigned int jenkins(const void *_str) {
 	return hash;
 }
 
-unsigned long hash(unsigned char *str){
+unsigned long hash(char *str){
     unsigned long hash = 5381;
     int c;
 
-    while (c = *str++)
+    while ((c = *str++))
         hash = ((hash << 5) + hash) + c;
 
     return hash;
@@ -238,6 +238,8 @@ enum error_code look_for_threshold_hamming(struct Payload* payload,int threshold
         }
         payload = payload->next;
     }
+    return SUCCESS;
+
 }
 
 enum error_code look_for_threshold_edit(struct Payload* payload,int threshold,const word* q_w,const word* w,bk_index temp){
@@ -280,6 +282,7 @@ enum error_code look_for_threshold_edit(struct Payload* payload,int threshold,co
         }
         payload = payload->next;
     }
+    return SUCCESS;
 }
 
 //looks for words that match with a given doc word in a bk tree 
@@ -783,8 +786,6 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
 	query_ids* queries_head = NULL;
 	int results_found = 0;
 
-
-
     //free result lists from previous doc
     while(r_node != NULL){
         result_node* temps = r_node; 
@@ -910,7 +911,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                             queries_head->queryID = temp_payload->queryId;
                         }else{                          //find correct position to sort
                             query_ids* temp = queries_head;
-                            query_ids* previous;
+                            query_ids* previous = NULL;
                             int inserted = -1;
                             while(temp != NULL){
                                 if(temp_payload->queryId < temp->queryID){      //insert it here
@@ -1014,7 +1015,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                             queries_head->queryID = temp_payload->queryId;
                         }else{                          //find correct position to sort
                             query_ids* temp = queries_head;
-                            query_ids* previous;
+                            query_ids* previous = NULL;
                             int inserted = -1;
                             while(temp != NULL){
                                 if(temp_payload->queryId < temp->queryID){      //insert it here
@@ -1105,7 +1106,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
                             queries_head->queryID = temp_payload->queryId;
                         }else{                          //find correct position to sort
                             query_ids* temp = queries_head;
-                            query_ids* previous;
+                            query_ids* previous = NULL;
                             int inserted = -1;
                             while(temp != NULL){
                                 if(temp_payload->queryId < temp->queryID){      //insert it here
@@ -1178,7 +1179,7 @@ ErrorCode StartQuery(QueryID query_id, const char * query_str, MatchType match_t
         deduplicate_edit_distance(query_str, query_id, match_dist, match_type, &ix);
     }
 
-
+    return EC_SUCCESS;
 
 }
 
@@ -1201,7 +1202,7 @@ ErrorCode EndQuery(QueryID query_id){
 
     //match type of query
     int query_type;
-    char* wards_to_delete;
+    char* words_to_delete;
 
 
     //free query from query list 
@@ -1297,6 +1298,7 @@ ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, Ma
         bucket->next = temp;
     }
 
+    return EC_SUCCESS;
 }
 
 
@@ -1342,16 +1344,11 @@ ErrorCode DestroyIndex(){
         free(temp);
     }
 
-    // query_ids* temp = queries_head;
-    // while(queries_head != NULL){
-    //     temp = queries_head;
-    //     queries_head = queries_head->next;
-    //     free(temp);
-    // }
-
-	//preeeeeeeeeepei na gieni destroy sto results list
-
+    if(batch_results_list != NULL){
+        free(batch_results_list);
+    }
     free_words_hash_table();
+    return EC_SUCCESS;
 }
 
 void delete_hash_tables_edit(){
@@ -1427,7 +1424,7 @@ void free_words_hash_table(){
         while(words_hash_table->words_hash_buckets[i] != NULL){
             Words_Hash_Bucket* temp = words_hash_table->words_hash_buckets[i];
             words_hash_table->words_hash_buckets[i] = words_hash_table->words_hash_buckets[i]->next;
-            free(words_hash_table->words_hash_buckets[i]);
+            free(temp);
         }
     }
     free(words_hash_table);
@@ -1526,7 +1523,7 @@ ErrorCode GetNextAvailRes(DocID* p_doc_id, unsigned int* p_num_res, QueryID** p_
     	
 	*p_doc_id = batch_results_list->head->doc_id;
     *p_num_res = batch_results_list->head->num_res;
-    *p_query_ids = (int*)malloc(sizeof(int)*(*p_num_res));
+    *p_query_ids = (unsigned int*)malloc(sizeof(unsigned int)*(*p_num_res));
     query_ids* temp = batch_results_list->head->results;
     for(int i=0; i<(*p_num_res); i++){
         (*p_query_ids)[i] = temp->queryID;
