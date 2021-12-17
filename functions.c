@@ -1,5 +1,4 @@
-#include "../include/core.h"
-
+#include "./include/structs.h"
 #include <stdlib.h>
 #include <time.h> 
 #include <string.h>
@@ -23,11 +22,11 @@ result_node* r_node= NULL;
 result_node_bk* r_node_bk_hamming = NULL;
 result_node_bk* r_node_bk_edit = NULL;
 
+query_ids* queries_head = NULL;
+int results_found = 0;
+
 Words_Hash_Table* words_hash_table = NULL;
 int last_doc_id;
-
-Batch_results* batch_results;
-Batch_results_list* batch_results_list;
 
 //----------------------------------------distance functions
 
@@ -703,7 +702,6 @@ void deduplicate_hamming(const char* temp, unsigned int queryId, int dist, int t
 
 ErrorCode InitializeIndex(){
 
-
     for(int i = 0; i<BLOOM_FILTER_SIZE; i++){
         bloom_filter_exact[i] = 0;
     }
@@ -743,34 +741,8 @@ ErrorCode InitializeIndex(){
         words_hash_table->words_hash_buckets[i] = NULL;
     }
 
-	batch_results_list = malloc(sizeof(Batch_results_list));
-	batch_results_list->head = NULL;
-	batch_results_list->tail = NULL;
-
     return EC_SUCCESS;
 }
-
-
-//adds results of a doc in a list
-void add_batch_result(int doc_id, int num_res, query_ids* results){
-	Batch_results* new_node = malloc(sizeof(Batch_results));
-	new_node->doc_id = doc_id;
-	new_node->num_res = num_res;
-	new_node->results = results;
-	new_node->next = NULL;
-
-
-	if(batch_results_list->head == NULL){
-		batch_results_list->head = new_node;
-		batch_results_list->tail = new_node;
-	}else{
-		batch_results_list->tail->next = new_node;
-		batch_results_list->tail = new_node;
-	}
-
-}
-
-
 
 ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
     last_doc_id = doc_id;
@@ -779,11 +751,6 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
     read_word = strtok(temp, " ");
 
     int docWordLen;
-
-	query_ids* queries_head = NULL;
-	int results_found = 0;
-
-
 
     //free result lists from previous doc
     while(r_node != NULL){
@@ -804,16 +771,24 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         free(temps);
     }
 
+    query_ids* temps = queries_head;
+    while(queries_head != NULL){
+        temps = queries_head;
+        queries_head = queries_head->next;
+        free(temps);
+    }
     
     r_node= NULL;
     r_node_bk_hamming = NULL;
     r_node_bk_edit = NULL;
 
+    queries_head = NULL;
+    results_found = 0;
 
     //for every word in document
     while(read_word != NULL){
         docWordLen = strlen(read_word);
-		//printf("%s\n",read_word);
+
         //document deduplication here
         //hash this word to see if it exists
         int hash = djb2(read_word) % WORD_HASH_TABLE_BUCKETS;
@@ -1157,18 +1132,15 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         temp_node3 = temp_node3->next;
     }
 
-	//add the results of a doc in results list
-	add_batch_result(doc_id,results_found,queries_head);
 
     reset_words_hash_table();
-	return EC_SUCCESS;
 }
 
 ErrorCode StartQuery(QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
 
     //add the query to the query hash table
     add_query(query_id%QUERY_HASH_BUCKETS,query_id,query_str, match_type, match_dist);
-
+    
     //update appropriate data structures
     if(match_type == 0){
         deduplicate_exact_matching(query_str, query_id, match_dist, match_type);
@@ -1177,40 +1149,16 @@ ErrorCode StartQuery(QueryID query_id, const char * query_str, MatchType match_t
     }else if(match_type == 2){
         deduplicate_edit_distance(query_str, query_id, match_dist, match_type, &ix);
     }
-
-
-
+    print_hash_table_exact(hash_table_exact);
 }
-
-void delete_from_exact(){
-
-}
-
-void delete_from_edit(){
-
-}
-
-void delete_from_hamming(){
-    
-}
-
-
 
 ErrorCode EndQuery(QueryID query_id){
 	// Remove this query from the active query set
 
-    //match type of query
-    int query_type;
-    char* wards_to_delete;
-
-
-    //free query from query list 
     Query* bucket = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
     
     //we are freeing the first bucket
     if(bucket != NULL && bucket->query_id == query_id){
-        query_type = bucket->match_type;
-        
         Query* temp = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
         Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS] = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS]->next;
         free(temp);
@@ -1220,7 +1168,6 @@ ErrorCode EndQuery(QueryID query_id){
     Query* bucket_prev = bucket;
     while(bucket != NULL){
         if(bucket->query_id == query_id){
-            query_type = bucket->match_type;
             bucket_prev->next = bucket->next;
             free(bucket);
             return EC_SUCCESS;
@@ -1230,14 +1177,10 @@ ErrorCode EndQuery(QueryID query_id){
     }
 
 
-    //free query from indexes
-    if(query_type == 0){
-        delete_from_exact();
-    }else if(query_type==1){
-        delete_from_edit();
-    }else if(query_type==2){
-        delete_from_hamming();
-    }
+
+
+
+
 
 	return EC_SUCCESS;
 }
@@ -1342,14 +1285,12 @@ ErrorCode DestroyIndex(){
         free(temp);
     }
 
-    // query_ids* temp = queries_head;
-    // while(queries_head != NULL){
-    //     temp = queries_head;
-    //     queries_head = queries_head->next;
-    //     free(temp);
-    // }
-
-	//preeeeeeeeeepei na gieni destroy sto results list
+    query_ids* temp = queries_head;
+    while(queries_head != NULL){
+        temp = queries_head;
+        queries_head = queries_head->next;
+        free(temp);
+    }
 
     free_words_hash_table();
 }
@@ -1523,30 +1464,14 @@ void print_query_list(){
 }
 
 ErrorCode GetNextAvailRes(DocID* p_doc_id, unsigned int* p_num_res, QueryID** p_query_ids){
-    	
-	*p_doc_id = batch_results_list->head->doc_id;
-    *p_num_res = batch_results_list->head->num_res;
-    *p_query_ids = (int*)malloc(sizeof(int)*(*p_num_res));
-    query_ids* temp = batch_results_list->head->results;
-    for(int i=0; i<(*p_num_res); i++){
+    *p_doc_id = last_doc_id;
+    *p_num_res = results_found;
+    *p_query_ids = (int*)malloc(sizeof(int)*results_found);
+    query_ids* temp = queries_head;
+    for(int i=0; i<results_found; i++){
         (*p_query_ids)[i] = temp->queryID;
         temp = temp->next;
     }
-	
-
-	temp = batch_results_list->head->results;
-	Batch_results* previous = batch_results_list->head ;
-	batch_results_list->head = batch_results_list->head->next;
-
-	//destoy result of p_doc_id before given to main
-	while(temp != NULL){
-		query_ids* temp2 = temp;
-		temp = temp->next;
-		free(temp2);
-	}
-	free(previous);
-
-	return EC_SUCCESS;
 }
 
 
