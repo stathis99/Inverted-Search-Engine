@@ -115,13 +115,13 @@ void test_bk_tree(void){
 	destroy_entry_index(&ix);
 	destroy_entry_list(&my_entry_list);
 }
-
+*/
 TEST_LIST = {
-	{ "Initialize Entry List", test_entry_list_create },
-	{ "Free'ed Entry List Number of Entries", test_entry_list_destroy },
-	{ "First Entry of List", test_entry_list_add },
-	{ "First Entry of List", test_entry_list_add_second },
-	{ "Test BK with Empty List", test_bk_tree_empty },
-	{ "Test BK with List", test_bk_tree },
+	// { "Initialize Entry List", test_entry_list_create },
+	// { "Free'ed Entry List Number of Entries", test_entry_list_destroy },
+	// { "First Entry of List", test_entry_list_add },
+	// { "First Entry of List", test_entry_list_add_second },
+	// { "Test BK with Empty List", test_bk_tree_empty },
+	// { "Test BK with List", test_bk_tree },
 	{ NULL, NULL } // τερματίζουμε τη λίστα με NULL
-};*/
+};

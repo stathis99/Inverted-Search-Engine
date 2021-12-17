@@ -45,6 +45,7 @@ TESTS = test
 LIBRARY=core
 
 all: $(PROGRAMS) $(OBJECTS1)
+	$(CC) -g $(OBJECTS1) -o $(OUTTEST)
 
 lib: $(IMPL_O)
 	$(CC) $(CXXFLAGS) -shared -o lib$(LIBRARY).so $(IMPL_O)
