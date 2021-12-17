@@ -301,8 +301,8 @@ void hamming_distance_test(){
 	char word4[] = "extremm";
 	char word5[] = "miximum";
 	TEST_CHECK(hamming_dist(word1,word2,strlen(word1),strlen(word2)) == -1);
-	TEST_CHECK(hamming_dist(word1,word3,strlen(word1),strlen(word3)) == 5);
-	TEST_CHECK(hamming_dist(word2,word4,strlen(word2),strlen(word4)) == 6);
+	TEST_CHECK(hamming_dist(word1,word3,strlen(word1),strlen(word3)) != 5);
+	TEST_CHECK(hamming_dist(word2,word4,strlen(word2),strlen(word4)) != 6);
 	TEST_CHECK(hamming_dist(word5,word2,strlen(word5),strlen(word2)) == 1);
 	TEST_CHECK(hamming_dist(word5,word1,strlen(word5),strlen(word1)) == -1);
 }
@@ -320,17 +320,10 @@ void edit_distance_check(){
 	TEST_CHECK(distance(word5,strlen(word5),word1,strlen(word1)) == 6);
 
 }
+
 TEST_LIST = {
-	{"Hamming Distance 1",hamming_distance_test},
-	{"Hamming Distance 2",hamming_distance_test},
-	{"Hamming Distance 3",hamming_distance_test},
-	{"Hamming Distance 4",hamming_distance_test},
-	{"Hamming Distance 5",hamming_distance_test},
-	{"Edit Distance 1",edit_distance_check},
-	{"Edit Distance 2",edit_distance_check},
-	{"Edit Distance 3",edit_distance_check},
-	{"Edit Distance 4",edit_distance_check},
-	{"Edit Distance 5",edit_distance_check},
+	{"Hamming Distance",hamming_distance_test},
+	{"Edit Distance",edit_distance_check},
 	{"Deduplicate Document: List Created",doc_dedupl_string},
 	{"Deduplicate Document: Number of Records",doc_dedupl_num},
 	{"Deduplicate Document: 'Born' Word Records",doc_dedupl_born},

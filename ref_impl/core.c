@@ -332,7 +332,7 @@ enum error_code lookup_entry_index_hamming(const word* w,int docWordLen, bk_inde
     return SUCCESS;
 }
 
-//looks for ward in exact match index
+//looks for word in exact match index
 void lookup_exact(const word* w,Hash_table_exact** hash_table_exact){
     for(int i=0; i<=28; i++){
         if(hash_table_exact[i] != NULL){
@@ -1184,21 +1184,62 @@ ErrorCode StartQuery(QueryID query_id, const char * query_str, MatchType match_t
 }
 
 //find every word in index and delete query id from payload 
-void delete_from_exact(int query_id,char* words,int words_num){
+void delete_from_exact(int query_id,char words[][32],int words_num){
     for(int i=0;i<words_num;i++){
-        printf("%s ",words[i]);
+        int found = -1;
+        //search every word in the structs
+        int word_hash_value = hash(words[i])%EXACT_HASH_BUCKET;
+        for(int i=0; i<=28; i++){
+            if(hash_table_exact[i] != NULL){
+                for(int j=0; j< EXACT_HASH_BUCKET; j++){
+                    if( hash_table_exact[i]->hash_buckets[j] != NULL){
+                        entry temp = hash_table_exact[i]->hash_buckets[j]; 
+                        while(temp != NULL){printf("Comparing %s with %s\n",words[i],temp->this_word);
+                            if (strcmp(temp->this_word,words[i]) == 0){
+                                Payload* temp_payload = temp->payload;
+                                Payload* previous_payload = NULL;
+                                while(temp_payload != NULL){
+                                    if(temp_payload->queryId == query_id){
+                                       // printf("Payload exists here. Delete\n");
+                                        /*if(previous_payload == NULL){
+                                            temp->payload = temp->payload->next;
+                                            free(temp_payload);
+                                        }else{
+                                            Payload* f_temp = temp;
+                                            previous_payload->next = temp->next;
+                                            free(f_temp);
+                                        }
+                                        found = 1;
+                                        break;*/
+                                    }
+                                    previous_payload = temp->payload;
+                                    temp_payload = temp_payload->next;
+                                }
+                            }
+                            if(found == 1){
+                                break;
+                            }
+                            temp =temp->next;
+                        }
+                        if(found == 1){
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
-void delete_from_edit(int query_id,char* words,int words_num){
+void delete_from_edit(int query_id,char words[][32],int words_num){
     for(int i=0;i<words_num;i++){
-        printf("%s ",words[i]);
+        //search every word in the structs
     }
 }
 
-void delete_from_hamming(int query_id,char* words,int words_num){
+void delete_from_hamming(int query_id,char words[][32],int words_num){
     for(int i=0;i<words_num;i++){
-        printf("%s ",words[i]);
+        //search every word in the structs
     }
 }
 
@@ -1211,6 +1252,7 @@ ErrorCode EndQuery(QueryID query_id){
     int query_type;
     char words[5][32];
     int words_num;
+    int deleted = 0;
 
     //free query from query list 
     Query* bucket = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
@@ -1221,47 +1263,51 @@ ErrorCode EndQuery(QueryID query_id){
         //copy info of query from query list
         words_num = bucket->query_words;
         query_type = bucket->match_type;
-        //copy every ward of this query
-        for(int i=0;i<bucket->query_words;i++){
-            strcpy(words[i],bucket->words[i]);
+
+        //copy every word
+        for(int i=0;i<words_num;i++){
+            strncpy(words[i],bucket->words[i],strlen(bucket->words[i]));
         }
 
         Query* temp = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
         Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS] = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS]->next;
         free(temp);
-        return EC_SUCCESS;
+        deleted = 1;
     }
+    if(deleted != 1){
+        Query* bucket_prev = bucket;
+        while(bucket != NULL){
 
-    Query* bucket_prev = bucket;
-    while(bucket != NULL){
-
-        //copy info of query from query list
-        words_num = bucket->query_words;
-        query_type = bucket->match_type;
-        //copy every ward of this query
-        for(int i=0;i<bucket->query_words;i++){
-            strcpy(words[i],bucket->words[i]);
-        }
-
-        if(bucket->query_id == query_id){
+            //copy info of query from query list
+            words_num = bucket->query_words;
             query_type = bucket->match_type;
-            bucket_prev->next = bucket->next;
-            free(bucket);
-            return EC_SUCCESS;
+            //copy every word
+            for(int i=0;i<words_num;i++){
+                strncpy(words[i],bucket->words[i],strlen(bucket->words[i]));
+            }
+
+            if(bucket->query_id == query_id){
+                query_type = bucket->match_type;
+                bucket_prev->next = bucket->next;
+                free(bucket);
+                deleted = 1;
+                break;
+            }
+            bucket_prev = bucket;
+            bucket = bucket->next;
         }
-        bucket_prev = bucket;
-        bucket = bucket->next;
     }
-
     //free query from indexes
-    if(query_type == 0){
-        delete_from_exact(query_id,words,words_num);
-    }else if(query_type==1){
-        delete_from_edit(query_id,words,words_num);
-    }else if(query_type==2){
-        delete_from_hamming(query_id,words,words_num);
-    }
-
+    // if(query_type == 0){
+    //     delete_from_exact(query_id,words,words_num);
+    // }else if(query_type==1){
+    //     delete_from_edit(query_id,words,words_num);
+    // }else if(query_type==2){
+    //     delete_from_hamming(query_id,words,words_num);
+    // }
+    for(int i=0; i<words_num; i++){
+        printf("%s ",words[i]);
+    }printf("\n");
 	return EC_SUCCESS;
 }
 

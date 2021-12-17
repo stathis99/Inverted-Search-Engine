@@ -202,6 +202,9 @@ void free_words_hash_table();
 void reset_words_hash_table();
 ErrorCode GetNextAvailRes(DocID* p_doc_id, unsigned int* p_num_res, QueryID** p_query_ids);
 void print_index();
+void delete_from_hamming(int query_id,char words[][32],int words_num);
+void delete_from_edit(int query_id,char words[][32],int words_num);
+void delete_from_exact(int query_id,char words[][32],int words_num);
 
 #ifdef __cplusplus
 }
