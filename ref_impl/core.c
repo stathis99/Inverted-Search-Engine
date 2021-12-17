@@ -1545,6 +1545,3 @@ ErrorCode GetNextAvailRes(DocID* p_doc_id, unsigned int* p_num_res, QueryID** p_
 
 	return EC_SUCCESS;
 }
-
-
-

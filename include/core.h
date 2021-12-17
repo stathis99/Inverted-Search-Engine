@@ -203,8 +203,6 @@ void reset_words_hash_table();
 ErrorCode GetNextAvailRes(DocID* p_doc_id, unsigned int* p_num_res, QueryID** p_query_ids);
 void print_index();
 
-
-
 #ifdef __cplusplus
 }
 #endif

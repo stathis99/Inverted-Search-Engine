@@ -1,127 +1,339 @@
 #include  "../include/acutest.h"			
 #include "../include/core.h"
+#include "./tests_struct.h"
 
-/*void test_entry_list_create(){
-	//initialize entry list
-	entry_list my_entry_list ;
-	create_entry_list(&my_entry_list);
-	TEST_CHECK(my_entry_list != NULL);
-		
-	//destroy list
-	destroy_entry_list(&my_entry_list);
+char temp[MAX_DOC_LENGTH];
 
-}
+void doc_dedupl_string(){
+	FILE* fp = fopen("./tests/doc_dedupl.txt","r");
+    if(fp == NULL){
+        printf("Couldnt open file.\n");
+        exit(-1);
+    }
 
-void test_entry_list_destroy(){
-	//initialize entry list
-	entry_list my_entry_list ;
-	create_entry_list(&my_entry_list);
-		
-	//destroy list
-	destroy_entry_list(&my_entry_list);
-	TEST_CHECK(get_number_entries(&my_entry_list) == 0);
+	//read the whole document
+    if(EOF==fscanf(fp, "%[^\n\r] ", temp)){
+		printf("Corrupted Test File at Read Document.\n");
+		exit(-1);
+	}
 
-}
+	Words_Hash_Table* words_hash_table_test = NULL;
+	//initialize our hash table
+    words_hash_table_test = malloc(sizeof(Words_Hash_Table));
+    for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
+        words_hash_table_test->words_hash_buckets[i] = NULL;
+    }
 
-void test_entry_list_add(void) {
-	//initialize entry list
-	entry_list my_entry_list ;
-	create_entry_list(&my_entry_list);
+	const word* read_word = strtok(temp, " ");
+	while(read_word != NULL){
+		int hash = djb2(read_word) % WORD_HASH_TABLE_BUCKETS;
+        if(words_hash_table_test->words_hash_buckets[hash] != NULL){
 
-	//create an entry 
-	char key_word[] = "small";
-   	word* my_word = (word*)malloc(sizeof(word));
-   	my_word->key_word = (char*)malloc(sizeof(char)*sizeof(key_word));
-   	strcpy(my_word->key_word,key_word);
-	entry my_entry = NULL;
-   	create_entry(my_word,&my_entry);
-	free_word(my_word);
+            int found = -1;
+            Words_Hash_Bucket* current = words_hash_table_test->words_hash_buckets[hash];
+            Words_Hash_Bucket* previous = NULL;
+            while(current != NULL){
+                if(strcmp(current->this_word,read_word) == 0){
+                    //word exists, skip
+                    found = 1;
+                    break;
+                }
+                previous = current;
+                current = current->next;
+            }
+            if( found == -1){
+                //add it to the hash buckets, search it in structs
+                previous->next = malloc(sizeof(Words_Hash_Bucket));
+                strcpy(previous->next->this_word,read_word);
+                previous->next->next = NULL;
+            }
+		}else{
+            //create first bucket
+            words_hash_table_test->words_hash_buckets[hash] = malloc(sizeof(Words_Hash_Bucket));
+            strcpy(words_hash_table_test->words_hash_buckets[hash]->this_word,read_word);
+            words_hash_table_test->words_hash_buckets[hash]->next = NULL ;
+        }
 
-	//insert it to list
-   	add_entry(&my_entry_list,&my_entry);
-
-	TEST_CHECK(get_number_entries(&my_entry_list) == 1);
-
-	destroy_entry_list(&my_entry_list);
-}
-
-void test_entry_list_add_second(void) {
-	//initialize entry list
-	entry_list my_entry_list ;
-	create_entry_list(&my_entry_list);
-
-	//create an entry 
-	char key_word[] = "small";
-   	word* my_word = (word*)malloc(sizeof(word));
-   	my_word->key_word = (char*)malloc(sizeof(char)*sizeof(key_word));
-   	strcpy(my_word->key_word,key_word);
-	entry my_entry = NULL;
-   	create_entry(my_word,&my_entry);
-	free_word(my_word);
-
-	//insert it to list
-   	add_entry(&my_entry_list,&my_entry);
+		read_word = strtok(NULL, " ");
+	}
 	
-	//create a new entry 
-	char key_word_new[] = "smell";
-   	word* my_word_new = (word*)malloc(sizeof(word));
-   	my_word_new->key_word = (char*)malloc(sizeof(char)*sizeof(key_word_new));
-   	strcpy(my_word_new->key_word,key_word_new);
-	entry my_entry_new = NULL;
-   	create_entry(my_word_new,&my_entry_new);
-	free_word(my_word_new);
+	char our_words[MAX_DOC_LENGTH] = "";
+	for(int i=0; i < WORD_HASH_TABLE_BUCKETS; i++){
+		Words_Hash_Bucket* current = words_hash_table_test->words_hash_buckets[i];
+		while(current != NULL){
+			char temp[33];
+			strcpy(temp,current->this_word);
+			strcat(temp," ");
+			strcat(our_words,temp);
+
+			current = current->next;
+		}
+	}
+
+	TEST_CHECK(strcmp(our_words, "hockey ethan diablo player cody born writer coen ") == 0);
+
+    for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
+        while(words_hash_table_test->words_hash_buckets[i] != NULL){
+            Words_Hash_Bucket* temp = words_hash_table_test->words_hash_buckets[i];
+            words_hash_table_test->words_hash_buckets[i] = words_hash_table_test->words_hash_buckets[i]->next;
+            free(temp);
+        }
+    }
+    free(words_hash_table_test);
+    words_hash_table_test = NULL;
+	fclose(fp);
+}
+
+void doc_dedupl_num(){
+	FILE* fp = fopen("./tests/doc_dedupl.txt","r");
+    if(fp == NULL){
+        printf("Couldnt open file.\n");
+        exit(-1);
+    }
+
+	//read the whole document
+    if(EOF==fscanf(fp, "%[^\n\r] ", temp)){
+		printf("Corrupted Test File at Read Document.\n");
+		exit(-1);
+	}
+	Words_Hash_Table* words_hash_table_test = NULL;
+	//initialize our hash table
+    words_hash_table_test = malloc(sizeof(Words_Hash_Table));
+    for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
+        words_hash_table_test->words_hash_buckets[i] = NULL;
+    }
+
+	const word* read_word = strtok(temp, " ");
+	while(read_word != NULL){
+		int hash = djb2(read_word) % WORD_HASH_TABLE_BUCKETS;
+        if(words_hash_table_test->words_hash_buckets[hash] != NULL){
+
+            int found = -1;
+            Words_Hash_Bucket* current = words_hash_table_test->words_hash_buckets[hash];
+            Words_Hash_Bucket* previous = NULL;
+            while(current != NULL){
+                if(strcmp(current->this_word,read_word) == 0){
+                    //word exists, skip
+                    found = 1;
+                    break;
+                }
+                previous = current;
+                current = current->next;
+            }
+            if( found == -1){
+                //add it to the hash buckets, search it in structs
+                previous->next = malloc(sizeof(Words_Hash_Bucket));
+                strcpy(previous->next->this_word,read_word);
+                previous->next->next = NULL;
+            }
+		}else{
+            //create first bucket
+            words_hash_table_test->words_hash_buckets[hash] = malloc(sizeof(Words_Hash_Bucket));
+            strcpy(words_hash_table_test->words_hash_buckets[hash]->this_word,read_word);
+            words_hash_table_test->words_hash_buckets[hash]->next = NULL ;
+        }
+
+		read_word = strtok(NULL, " ");
+	}
+
+	int total = 0;
+
+	for(int i=0; i < WORD_HASH_TABLE_BUCKETS; i++){
+		Words_Hash_Bucket* current = words_hash_table_test->words_hash_buckets[i];
+		while(current != NULL){
+			total++;
+			current = current->next;
+		}
+	}
+
+	TEST_CHECK(total == 8 );
+
+	fclose(fp);
+
+    for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
+        while(words_hash_table_test->words_hash_buckets[i] != NULL){
+            Words_Hash_Bucket* temp = words_hash_table_test->words_hash_buckets[i];
+            words_hash_table_test->words_hash_buckets[i] = words_hash_table_test->words_hash_buckets[i]->next;
+            free(temp);
+        }
+    }
+    free(words_hash_table_test);
+    words_hash_table_test = NULL;
+
+}
+
+void doc_dedupl_born(){
+	FILE* fp = fopen("./tests/doc_dedupl.txt","r");
+    if(fp == NULL){
+        printf("Couldnt open file.\n");
+        exit(-1);
+    }
+
+	//read the whole document
+    if(EOF==fscanf(fp, "%[^\n\r] ", temp)){
+		printf("Corrupted Test File at Read Document.\n");
+		exit(-1);
+	}
+	Words_Hash_Table* words_hash_table_test = NULL;
+	//initialize our hash table
+    words_hash_table_test = malloc(sizeof(Words_Hash_Table));
+    for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
+        words_hash_table_test->words_hash_buckets[i] = NULL;
+    }
+
+	const word* read_word = strtok(temp, " ");
+	while(read_word != NULL){
+		int hash = djb2(read_word) % WORD_HASH_TABLE_BUCKETS;
+        if(words_hash_table_test->words_hash_buckets[hash] != NULL){
+
+            int found = -1;
+            Words_Hash_Bucket* current = words_hash_table_test->words_hash_buckets[hash];
+            Words_Hash_Bucket* previous = NULL;
+            while(current != NULL){
+                if(strcmp(current->this_word,read_word) == 0){
+                    //word exists, skip
+                    found = 1;
+                    break;
+                }
+                previous = current;
+                current = current->next;
+            }
+            if( found == -1){
+                //add it to the hash buckets, search it in structs
+                previous->next = malloc(sizeof(Words_Hash_Bucket));
+                strcpy(previous->next->this_word,read_word);
+                previous->next->next = NULL;
+            }
+		}else{
+            //create first bucket
+            words_hash_table_test->words_hash_buckets[hash] = malloc(sizeof(Words_Hash_Bucket));
+            strcpy(words_hash_table_test->words_hash_buckets[hash]->this_word,read_word);
+            words_hash_table_test->words_hash_buckets[hash]->next = NULL ;
+        }
+
+		read_word = strtok(NULL, " ");
+	}
+
+    int born_count = 0;
 	
-	//add the new entry to the list
-	add_entry(&my_entry_list,&my_entry_new);
+	for(int i=0; i < WORD_HASH_TABLE_BUCKETS; i++){
+		Words_Hash_Bucket* current = words_hash_table_test->words_hash_buckets[i];
+		while(current != NULL){
 
-	//check that the first is indeed there
-	entry* temp = get_first(&my_entry_list);
-	TEST_CHECK(my_entry == *temp);
+            if(strcmp("born",current->this_word) == 0){
+                born_count++;
+            }
+			current = current->next;
+		}
+	}
 
-	//destroy list
-	destroy_entry_list(&my_entry_list);
+    TEST_CHECK(born_count == 1 );
+	fclose(fp);
+
+    for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
+        while(words_hash_table_test->words_hash_buckets[i] != NULL){
+            Words_Hash_Bucket* temp = words_hash_table_test->words_hash_buckets[i];
+            words_hash_table_test->words_hash_buckets[i] = words_hash_table_test->words_hash_buckets[i]->next;
+            free(temp);
+        }
+    }
+    free(words_hash_table_test);
+    words_hash_table_test = NULL;
+
 }
 
+void query_handling(){
+		FILE* fp = fopen("./tests/dedupl.txt","r");
+    if(fp == NULL){
+        printf("Couldnt open file.\n");
+        exit(-1);
+    }
+	int fres;
+	char ch;
+	int id;
 
-void test_bk_tree_empty(void){
-	entry_list my_entry_list ;
-	create_entry_list(&my_entry_list);
-	bk_index ix = NULL;
-	//enum error_code result = build_entry_index(&my_entry_list,EDIT_DIST,&ix);
-	TEST_CHECK(ix == NULL);
-	destroy_entry_list(&my_entry_list);
-}
+    //initialize query hash table
+    InitializeIndex_QueryTest();
 
-void test_bk_tree(void){
-	entry_list my_entry_list ;
-	create_entry_list(&my_entry_list);
+	while(1){
+        fres = fscanf(fp, "%c %u ", &ch, &id);
+        if(fres == EOF){
+            break;
+        }
+		if(ch == 's'){
+            int match_type;
+			int match_dist;
 
-	//create an entry 
-	char key_word[] = "small";
-   	word* my_word = (word*)malloc(sizeof(word));
-   	my_word->key_word = (char*)malloc(sizeof(char)*sizeof(key_word));
-   	strcpy(my_word->key_word,key_word);
-	entry my_entry = NULL;
-   	create_entry(my_word,&my_entry);
-	free_word(my_word);
+			if(EOF == fscanf(fp, "%d %d %*d %[^\n\r] ", &match_type, &match_dist, temp)){
+				printf("Corrupted Test File at Read Queries.\n");
+				exit(-1);
+			}
 
-	//insert it to list
-   	add_entry(&my_entry_list,&my_entry);
+            if(StartQuery_QueryTest(id, temp, match_type, match_dist) == EC_FAIL){
+                printf("StartQuery failed for QueryID %d\n",id);
+                exit(-1);
+            }
+        }
+	}
 	
-	bk_index ix = NULL;
-	//enum error_code result = build_entry_index(&my_entry_list,EDIT_DIST,&ix);
-	TEST_CHECK(ix != NULL);
+	extern Query_Hash_Table* Q_Hash_Table_Test;
+    printf("\n");
+    for(int i=0; i<QUERY_HASH_BUCKETS_TEST; i++){
+        Query* current = Q_Hash_Table_Test->query_hash_buckets[i];
+        if(current != NULL){
+            printf("Printing index %d\n",i);
+            while(current != NULL ){
+                printf("%d %s ->",current->query_id,current->str);
+                current = current->next;
+            }
+            printf("\n");
+        }
+    }
 
-	destroy_entry_index(&ix);
-	destroy_entry_list(&my_entry_list);
+	fclose(fp);
+    DestroyIndex_QueryTest();
 }
-*/
+
+void hamming_distance_test(){
+	char word1[] = "edits";
+	char word2[] = "maximum";
+	char word3[] = "giant";
+	char word4[] = "extremm";
+	char word5[] = "miximum";
+	TEST_CHECK(hamming_dist(word1,word2,strlen(word1),strlen(word2)) == -1);
+	TEST_CHECK(hamming_dist(word1,word3,strlen(word1),strlen(word3)) == 5);
+	TEST_CHECK(hamming_dist(word2,word4,strlen(word2),strlen(word4)) == 6);
+	TEST_CHECK(hamming_dist(word5,word2,strlen(word5),strlen(word2)) == 1);
+	TEST_CHECK(hamming_dist(word5,word1,strlen(word5),strlen(word1)) == -1);
+}
+
+void edit_distance_check(){
+	char word1[] = "edits";
+	char word2[] = "maximum";
+	char word3[] = "giant";
+	char word4[] = "extremm";
+	char word5[] = "miximum";
+	TEST_CHECK(distance(word1,strlen(word1),word2,strlen(word2)) != -1);
+	TEST_CHECK(distance(word1,strlen(word1),word2,strlen(word2)) == 6);
+	TEST_CHECK(distance(word2,strlen(word2),word4,strlen(word4)) == 6);
+	TEST_CHECK(distance(word5,strlen(word5),word2,strlen(word2)) == 1);
+	TEST_CHECK(distance(word5,strlen(word5),word1,strlen(word1)) == 6);
+
+}
 TEST_LIST = {
-	// { "Initialize Entry List", test_entry_list_create },
-	// { "Free'ed Entry List Number of Entries", test_entry_list_destroy },
-	// { "First Entry of List", test_entry_list_add },
-	// { "First Entry of List", test_entry_list_add_second },
-	// { "Test BK with Empty List", test_bk_tree_empty },
-	// { "Test BK with List", test_bk_tree },
+	{"Hamming Distance 1",hamming_distance_test},
+	{"Hamming Distance 2",hamming_distance_test},
+	{"Hamming Distance 3",hamming_distance_test},
+	{"Hamming Distance 4",hamming_distance_test},
+	{"Hamming Distance 5",hamming_distance_test},
+	{"Edit Distance 1",edit_distance_check},
+	{"Edit Distance 2",edit_distance_check},
+	{"Edit Distance 3",edit_distance_check},
+	{"Edit Distance 4",edit_distance_check},
+	{"Edit Distance 5",edit_distance_check},
+	{"Deduplicate Document: List Created",doc_dedupl_string},
+	{"Deduplicate Document: Number of Records",doc_dedupl_num},
+	{"Deduplicate Document: 'Born' Word Records",doc_dedupl_born},
+	{"Query Hash Table",query_handling},
 	{ NULL, NULL } // τερματίζουμε τη λίστα με NULL
 };
