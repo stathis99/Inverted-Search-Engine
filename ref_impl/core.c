@@ -1183,16 +1183,23 @@ ErrorCode StartQuery(QueryID query_id, const char * query_str, MatchType match_t
 
 }
 
-void delete_from_exact(){
-
+//find every word in index and delete query id from payload 
+void delete_from_exact(int query_id,char* words,int words_num){
+    for(int i=0;i<words_num;i++){
+        printf("%s ",words[i]);
+    }
 }
 
-void delete_from_edit(){
-
+void delete_from_edit(int query_id,char* words,int words_num){
+    for(int i=0;i<words_num;i++){
+        printf("%s ",words[i]);
+    }
 }
 
-void delete_from_hamming(){
-    
+void delete_from_hamming(int query_id,char* words,int words_num){
+    for(int i=0;i<words_num;i++){
+        printf("%s ",words[i]);
+    }
 }
 
 
@@ -1202,16 +1209,23 @@ ErrorCode EndQuery(QueryID query_id){
 
     //match type of query
     int query_type;
-    char* words_to_delete;
-
+    char words[5][32];
+    int words_num;
 
     //free query from query list 
     Query* bucket = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
     
     //we are freeing the first bucket
     if(bucket != NULL && bucket->query_id == query_id){
-        query_type = bucket->match_type;
         
+        //copy info of query from query list
+        words_num = bucket->query_words;
+        query_type = bucket->match_type;
+        //copy every ward of this query
+        for(int i=0;i<bucket->query_words;i++){
+            strcpy(words[i],bucket->words[i]);
+        }
+
         Query* temp = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
         Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS] = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS]->next;
         free(temp);
@@ -1220,6 +1234,15 @@ ErrorCode EndQuery(QueryID query_id){
 
     Query* bucket_prev = bucket;
     while(bucket != NULL){
+
+        //copy info of query from query list
+        words_num = bucket->query_words;
+        query_type = bucket->match_type;
+        //copy every ward of this query
+        for(int i=0;i<bucket->query_words;i++){
+            strcpy(words[i],bucket->words[i]);
+        }
+
         if(bucket->query_id == query_id){
             query_type = bucket->match_type;
             bucket_prev->next = bucket->next;
@@ -1230,14 +1253,13 @@ ErrorCode EndQuery(QueryID query_id){
         bucket = bucket->next;
     }
 
-
     //free query from indexes
     if(query_type == 0){
-        delete_from_exact();
+        delete_from_exact(query_id,words,words_num);
     }else if(query_type==1){
-        delete_from_edit();
+        delete_from_edit(query_id,words,words_num);
     }else if(query_type==2){
-        delete_from_hamming();
+        delete_from_hamming(query_id,words,words_num);
     }
 
 	return EC_SUCCESS;
