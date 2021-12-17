@@ -59,3 +59,6 @@ unit_test.o: unit_test.c
 clean:
 	rm -f testdriver lib$(LIBRARY).so result.txt $(INCLUDE)/unit_test.o
 	find . -name '*.o' -print | xargs rm -f
+
+test1:
+	./test
