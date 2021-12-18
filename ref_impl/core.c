@@ -333,8 +333,8 @@ enum error_code lookup_entry_index_hamming(const word* w,int docWordLen, bk_inde
 }
 
 //looks for word in exact match index
-void lookup_exact(const word* w,Hash_table_exact** hash_table_exact){
-    for(int i=0; i<=28; i++){
+void lookup_exact(const word* w,Hash_table_exact** hash_table_exact,int word_len){
+        int i = word_len - 1;
         if(hash_table_exact[i] != NULL){
             for(int j=0; j< EXACT_HASH_BUCKET; j++){
                 if( hash_table_exact[i]->hash_buckets[j] != NULL){
@@ -372,7 +372,6 @@ void lookup_exact(const word* w,Hash_table_exact** hash_table_exact){
                 }
             }
         }
-    }
 }
 
 //destroys a bk tree
@@ -864,7 +863,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
         //look in exact matching
 
         if(bloom_filter_exact[jenkins(read_word)%BLOOM_FILTER_SIZE] == 1 && bloom_filter_exact[djb2(read_word)%BLOOM_FILTER_SIZE] == 1){
-            lookup_exact(read_word,hash_table_exact);
+            lookup_exact(read_word,hash_table_exact,docWordLen);
         }
 
         read_word = strtok(NULL, " ");
@@ -1232,15 +1231,38 @@ void delete_from_exact(int query_id,char words[][32],int words_num){
 }
 
 void delete_from_edit(int query_id,char words[][32],int words_num){
-    for(int i=0;i<words_num;i++){
-        //search every word in the structs
-    }
+    //search every word in the structs
+    printf("%d \n",words_num);
+    for(int i=0; i<words_num; i++){
+        // printf("%s ",words[i]);
+
+        // hash_tables_edit->hash_buckets
+
+
+
+
+
+
+    }printf("\n");
+
+
+
+
+    
 }
 
 void delete_from_hamming(int query_id,char words[][32],int words_num){
-    for(int i=0;i<words_num;i++){
-        //search every word in the structs
+    printf("%d \n",words_num);
+    for(int i=0; i<words_num; i++){
+        //printf("%s ",words[i]);
     }
+    //printf("\n");
+
+
+
+
+
+    
 }
 
 
@@ -1251,7 +1273,7 @@ ErrorCode EndQuery(QueryID query_id){
     //match type of query
     int query_type;
     char words[5][32];
-    int words_num;
+    int words_num = 0;
     int deleted = 0;
 
     //free query from query list 
@@ -1266,7 +1288,7 @@ ErrorCode EndQuery(QueryID query_id){
 
         //copy every word
         for(int i=0;i<words_num;i++){
-            strncpy(words[i],bucket->words[i],strlen(bucket->words[i]));
+            strcpy(words[i],bucket->words[i]);
         }
 
         Query* temp = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
@@ -1283,7 +1305,7 @@ ErrorCode EndQuery(QueryID query_id){
             query_type = bucket->match_type;
             //copy every word
             for(int i=0;i<words_num;i++){
-                strncpy(words[i],bucket->words[i],strlen(bucket->words[i]));
+                strcpy(words[i],bucket->words[i]);
             }
 
             if(bucket->query_id == query_id){
@@ -1298,16 +1320,16 @@ ErrorCode EndQuery(QueryID query_id){
         }
     }
     //free query from indexes
-    // if(query_type == 0){
-    //     delete_from_exact(query_id,words,words_num);
-    // }else if(query_type==1){
-    //     delete_from_edit(query_id,words,words_num);
-    // }else if(query_type==2){
-    //     delete_from_hamming(query_id,words,words_num);
-    // }
-    for(int i=0; i<words_num; i++){
-        printf("%s ",words[i]);
-    }printf("\n");
+    if(query_type == 0){
+        //delete_from_exact(query_id,words,words_num);
+    }else if(query_type==1){
+        //delete_from_edit(query_id,words,words_num);
+    }else if(query_type==2){
+        //delete_from_hamming(query_id,words,words_num);
+    }
+
+
+
 	return EC_SUCCESS;
 }
 

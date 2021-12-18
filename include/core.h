@@ -195,7 +195,7 @@ unsigned int jenkins(const void *_str);
 ErrorCode StartQuery (QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist);
 ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist);
 void print_query_list();
-void lookup_exact(const word* w,Hash_table_exact** hash_table_exact);
+void lookup_exact(const word* w,Hash_table_exact** hash_table_exact,int word_len);
 ErrorCode EndQuery(QueryID query_id);
 void print_query_hash_buckets();
 void free_words_hash_table();

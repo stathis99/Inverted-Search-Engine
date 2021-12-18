@@ -301,8 +301,8 @@ void hamming_distance_test(){
 	char word4[] = "extremm";
 	char word5[] = "miximum";
 	TEST_CHECK(hamming_dist(word1,word2,strlen(word1),strlen(word2)) == -1);
-	TEST_CHECK(hamming_dist(word1,word3,strlen(word1),strlen(word3)) != 5);
-	TEST_CHECK(hamming_dist(word2,word4,strlen(word2),strlen(word4)) != 6);
+	TEST_CHECK(hamming_dist(word1,word3,strlen(word1),strlen(word3)) == 5);
+	TEST_CHECK(hamming_dist(word2,word4,strlen(word2),strlen(word4)) == 6);
 	TEST_CHECK(hamming_dist(word5,word2,strlen(word5),strlen(word2)) == 1);
 	TEST_CHECK(hamming_dist(word5,word1,strlen(word5),strlen(word1)) == -1);
 }
