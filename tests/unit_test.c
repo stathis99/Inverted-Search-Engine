@@ -356,9 +356,9 @@ void query_structs_handling(){
 	}
 
 
-
+    print_hash_tables_test();
 	fclose(fp);
-    DestroyIndex_QueryTest();
+    DestroyIndex_Insert();
 }
 
 TEST_LIST = {

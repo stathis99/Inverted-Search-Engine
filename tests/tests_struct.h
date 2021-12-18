@@ -16,6 +16,179 @@ Query_Hash_Table* Q_Hash_Table;
 bk_index ix;
 int bloom_filter_exact[10];
 
+void print_hash_table_exact_test(){
+    for(int i=0; i<=28; i++){
+        if(hash_table_exact[i] != NULL){
+            printf("\nPrinting len %d\n",i);
+            for(int j=0; j< EXACT_HASH_BUCKET_TEST; j++){
+                if( hash_table_exact[i]->hash_buckets[j] != NULL){
+                    printf("Printing bucket %d\n",j);
+                    entry temp = hash_table_exact[i]->hash_buckets[j]; 
+                    while(temp != NULL){
+                        printf("%s     ->\n\n",temp->this_word);
+                        Payload* temp_payload = temp->payload;
+                        while(temp_payload != NULL){
+                            printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
+                            temp_payload = temp_payload->next;
+                        }
+                        temp =temp->next;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void print_hash_tables_test(){
+    for(int i=0 ; i <= 28; i++){
+        if(hash_tables_hamming[i] != NULL){
+            for(int j=0; j < EDIT_HASH_BUCKETS_TEST; j++){
+                Hash_Bucket* current = hash_tables_hamming[i]->hash_buckets[j];
+                while(current != NULL){
+                    printf("Printing length %d hash %d:\n",i+1,j);
+                    //access the bk node that this bucket points to
+                    printf("%s     ->\n",current->node->this_word);
+                    current = current->next;
+                }
+            }
+            printf("Length %d finished\n\n",i+1);
+        }
+    }
+    printf("\nPrinting exact");
+    print_hash_table_exact_test();
+}
+
+enum error_code destroy_entry_index(bk_index* ix){
+    if(*ix == NULL){
+        return NULL_POINTER;
+    }
+    bk_index temp_child  = (*ix)->child;
+
+    Payload* curr;
+    while((*ix)->payload != NULL){
+	    curr = (*ix)->payload;
+	    (*ix)->payload = (*ix)->payload->next;
+	    free(curr);
+    }
+
+    free(*ix);
+    bk_index temp_child_next;
+    while(temp_child != NULL){
+        temp_child_next = temp_child->next;
+        destroy_entry_index(&temp_child);
+        temp_child = temp_child_next;   
+    }
+    *ix = NULL;
+    return SUCCESS;
+
+}
+void delete_hash_tables_edit(){
+
+        //if this hash table has been allocated, free it; else move on
+        if(hash_tables_edit != NULL){
+            for(int j=0; j < EDIT_HASH_BUCKETS_TEST; j++){
+                //Hash_Bucket* current = hash_tables[i]->hash_buckets[j];
+                    Hash_Bucket* temp ; 
+                    while(hash_tables_edit->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
+                        temp = hash_tables_edit->hash_buckets[j];
+                        hash_tables_edit->hash_buckets[j] = hash_tables_edit->hash_buckets[j]->next;
+                        free(temp); 
+                    }
+            }
+            free(hash_tables_edit->hash_buckets);
+            free(hash_tables_edit);
+        }
+
+    destroy_entry_index(&ix);
+}
+
+enum error_code destroy_entry(entry* e){
+    if(*e == NULL){
+        return NULL_POINTER;
+    }
+    
+    Payload* curr;
+    while((*e)->payload != NULL){
+	    curr = (*e)->payload;
+	    (*e)->payload = (*e)->payload->next;
+	    free(curr);
+    }
+
+    free(*e);
+    return SUCCESS;
+}
+
+void delete_hash_tables_hamming(){
+    
+    for(int i=0; i <= 28; i++){
+        //if this hash table has been allocated, free it; else move on
+        if(hash_tables_hamming[i] != NULL){
+            for(int j=0; j < HAMMING_HASH_BUCKET_TEST; j++){
+                //free the hash_table itself
+                Hash_Bucket* temp ; 
+                while(hash_tables_hamming[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
+                    temp = hash_tables_hamming[i]->hash_buckets[j];
+                    hash_tables_hamming[i]->hash_buckets[j] = hash_tables_hamming[i]->hash_buckets[j]->next;
+                    free(temp); 
+                }
+            }
+            free(hash_tables_hamming[i]->hash_buckets);
+            free(hash_tables_hamming[i]);
+
+            //if hash table has been initialized then we have at least a root for a bk of this length
+            //free the bk trees starting from their roots
+            destroy_entry_index(&hamming_root_table[i]);
+        }
+    }
+
+    //finally, free both arrays
+    free(hash_tables_hamming);
+    free(hamming_root_table);
+}
+
+void delete_hash_tables_exact(){
+    for(int i=0; i <= 28; i++){
+        //if this hash table has been allocated, free it; else move on
+        if(hash_table_exact[i] != NULL){
+            for(int j=0; j < EXACT_HASH_BUCKET_TEST; j++){
+                //free the hash_table itself
+                entry temp ; 
+                while(hash_table_exact[i]->hash_buckets[j] != NULL){        //if there exists at least one bucket, free it and every next it has
+                    temp = hash_table_exact[i]->hash_buckets[j];
+                    hash_table_exact[i]->hash_buckets[j] = hash_table_exact[i]->hash_buckets[j]->next;
+                    destroy_entry(&temp); 
+                }
+            }
+            free(hash_table_exact[i]->hash_buckets);
+            free(hash_table_exact[i]);
+        }
+    }
+    free(hash_table_exact);
+}
+
+ErrorCode DestroyIndex_Insert(){
+
+    delete_hash_tables_edit();
+    delete_hash_tables_hamming();
+    delete_hash_tables_exact();
+
+    for(int i=0; i<= QUERY_HASH_BUCKETS_TEST-1; i++){
+        if( Q_Hash_Table->query_hash_buckets[i] != NULL){
+            //free all buckets from the list here
+            Query* bucket = Q_Hash_Table->query_hash_buckets[i];
+            while(Q_Hash_Table->query_hash_buckets[i] != NULL){
+                bucket = Q_Hash_Table->query_hash_buckets[i];
+                Q_Hash_Table->query_hash_buckets[i] =  Q_Hash_Table->query_hash_buckets[i]->next;
+                free(bucket);
+            }
+        }
+    }
+    free(Q_Hash_Table->query_hash_buckets);
+    free(Q_Hash_Table);
+
+    return EC_SUCCESS;
+}
+
 void InitializeIndex_QueryTest();
 ErrorCode StartQuery_QueryTest(QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist);
 ErrorCode add_query_Test(int bucket_num, QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist);
@@ -217,6 +390,61 @@ ErrorCode add_query_Test(int bucket_num, QueryID query_id, const char * query_st
     return EC_SUCCESS;
 }
 
+ErrorCode add_query_Test_Insert(int bucket_num, QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
+    if(Q_Hash_Table->query_hash_buckets[bucket_num] == NULL){
+        //initialize bucket
+        Q_Hash_Table->query_hash_buckets[bucket_num] = malloc(sizeof(Query));
+
+        //store data
+        Q_Hash_Table->query_hash_buckets[bucket_num]->query_id = query_id;
+        strcpy(Q_Hash_Table->query_hash_buckets[bucket_num]->str,query_str);
+        
+        char temp_query_str[MAX_QUERY_LENGTH];
+        strcpy(temp_query_str,query_str);
+        char* read_word = strtok(temp_query_str, " ");
+        int num = 0;
+        while(read_word != NULL){
+            strcpy(Q_Hash_Table->query_hash_buckets[bucket_num]->words[num],read_word);
+            num++;
+            read_word = strtok(NULL, " ");
+        }
+        Q_Hash_Table->query_hash_buckets[bucket_num]->query_words = num;
+        Q_Hash_Table->query_hash_buckets[bucket_num]->match_dist = match_dist;
+        Q_Hash_Table->query_hash_buckets[bucket_num]->match_type = match_type;
+
+        Q_Hash_Table->query_hash_buckets[bucket_num]->next = NULL;
+    }else{
+        //create new bucket
+        //add it to the start, save time in parsing till the end
+        
+        Query* bucket = malloc(sizeof(Query));
+
+        //store data
+        bucket->query_id = query_id;
+        strcpy(bucket->str,query_str);
+        bucket->match_dist = match_dist;
+        bucket->match_type = match_type;
+
+        char temp_query_str[MAX_QUERY_LENGTH];
+        strcpy(temp_query_str,query_str); 
+        char* read_word = strtok(temp_query_str, " ");
+        int num = 0;
+        while(read_word != NULL){
+            strcpy(bucket->words[num],read_word);
+            num++;
+            read_word = strtok(NULL, " ");
+        }
+        bucket->query_words = num;
+
+        //swap first and new
+        Query* temp = Q_Hash_Table->query_hash_buckets[bucket_num];
+        Q_Hash_Table->query_hash_buckets[bucket_num] = bucket;
+        bucket->next = temp;
+    }
+    return EC_SUCCESS;
+}
+
+
 unsigned int djb2(const void *_str) {
 	const char *str = _str;
     unsigned int hash = 5381;
@@ -242,7 +470,7 @@ void add_payload(struct Payload* payload,int queryId, int dist){
 bk_index ix;
 
 ErrorCode StartQuery_QueryTest_Insert(QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
-    add_query_Test(query_id%QUERY_HASH_BUCKETS_TEST,query_id,query_str, match_type, match_dist);
+    add_query_Test_Insert(query_id%QUERY_HASH_BUCKETS_TEST,query_id,query_str, match_type, match_dist);
     
     //update appropriate data structures
     if(match_type == 0){
@@ -449,10 +677,10 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
         int len = strlen(read_word);
         //printf("%s %d %d %d \n",read_word ,queryId, dist, type );
 
-       // bloom_filter_exact[djb2(read_word)%10] = 1;
-       // bloom_filter_exact[jenkins(read_word)%10] = 1;
+        bloom_filter_exact[djb2(read_word)%10] = 1;
+        bloom_filter_exact[jenkins(read_word)%10] = 1;
 
-/*
+
         int word_hash_value = hash(read_word)%EXACT_HASH_BUCKET_TEST;
         //printf("Word %s hashes to j:%d dj:%d\n",read_word,word_hash_value1,word_hash_value2);
         
@@ -494,7 +722,7 @@ void deduplicate_exact_matching(const char* temp, unsigned int queryId, int dist
                     add_entry_no_list(hash_table_exact[len-1]->hash_buckets[word_hash_value],temp_entry);
                 }
             }
-        }*/
+        }
         //processing of current word ended, move on to the next one
         read_word = strtok(NULL, " ");
     }
