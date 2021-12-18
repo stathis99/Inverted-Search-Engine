@@ -1271,10 +1271,10 @@ ErrorCode EndQuery(QueryID query_id){
 	// Remove this query from the active query set
 
     //match type of query
-    int query_type;
-    char words[5][32];
-    int words_num = 0;
-    int deleted = 0;
+    // int query_type;
+    // char words[5][32];
+    // int words_num = 0;
+    // int deleted = 0;
 
     //free query from query list 
     Query* bucket = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
@@ -1283,52 +1283,50 @@ ErrorCode EndQuery(QueryID query_id){
     if(bucket != NULL && bucket->query_id == query_id){
         
         //copy info of query from query list
-        words_num = bucket->query_words;
-        query_type = bucket->match_type;
+        // words_num = bucket->query_words;
+        // query_type = bucket->match_type;
 
         //copy every word
-        for(int i=0;i<words_num;i++){
-            strcpy(words[i],bucket->words[i]);
-        }
+        // for(int i=0;i<words_num;i++){
+        //     strcpy(words[i],bucket->words[i]);
+        // }
 
         Query* temp = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
         Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS] = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS]->next;
         free(temp);
-        deleted = 1;
+        //deleted = 1;
+        return EC_SUCCESS;
     }
-    if(deleted != 1){
         Query* bucket_prev = bucket;
         while(bucket != NULL){
 
-            //copy info of query from query list
-            words_num = bucket->query_words;
-            query_type = bucket->match_type;
-            //copy every word
-            for(int i=0;i<words_num;i++){
-                strcpy(words[i],bucket->words[i]);
-            }
+            // //copy info of query from query list
+            // words_num = bucket->query_words;
+            // query_type = bucket->match_type;
+            // //copy every word
+            // for(int i=0;i<words_num;i++){
+            //     strcpy(words[i],bucket->words[i]);
+            // }
 
             if(bucket->query_id == query_id){
-                query_type = bucket->match_type;
+                //query_type = bucket->match_type;
                 bucket_prev->next = bucket->next;
                 free(bucket);
-                deleted = 1;
-                break;
+                //deleted = 1;
+                //break;
+                return EC_SUCCESS;
             }
             bucket_prev = bucket;
             bucket = bucket->next;
         }
-    }
     //free query from indexes
-    if(query_type == 0){
-        //delete_from_exact(query_id,words,words_num);
-    }else if(query_type==1){
-        //delete_from_edit(query_id,words,words_num);
-    }else if(query_type==2){
-        //delete_from_hamming(query_id,words,words_num);
-    }
-
-
+    // if(query_type == 0){
+    //     delete_from_exact(query_id,words,words_num);
+    // }else if(query_type==1){
+    //     delete_from_edit(query_id,words,words_num);
+    // }else if(query_type==2){
+    //     delete_from_hamming(query_id,words,words_num);
+    // }
 
 	return EC_SUCCESS;
 }

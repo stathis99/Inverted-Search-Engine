@@ -179,7 +179,6 @@ unsigned long hash(char *str);
 void delete_hash_tables_edit();
 void print_hash_tables(Hash_table** hash_table);
 void deduplicate_edit_distance(const char* temp, unsigned int , int , int,bk_index* ix);
-void deduplicate_edit_distance2(const char* temp, unsigned int , int , int, Hash_table** hash_table,bk_index* ix);
 void deduplicate_exact_matching(const char* temp, unsigned int , int , int);
 void deduplicate_hamming(const char* temp, unsigned int , int , int);
 void print_hash_table_exact(Hash_table_exact** hash_table_exact);
