@@ -321,6 +321,46 @@ void edit_distance_check(){
 
 }
 
+void query_structs_handling(){
+	FILE* fp = fopen("./tests/dedupl.txt","r");
+    if(fp == NULL){
+        printf("Couldnt open file.\n");
+        exit(-1);
+    }
+	int fres;
+	char ch;
+	int id;
+
+    //initialize query hash table
+    InitializeIndex_Insert();
+
+	while(1){
+        fres = fscanf(fp, "%c %u ", &ch, &id);
+        if(fres == EOF){
+            break;
+        }
+		if(ch == 's'){
+            int match_type;
+			int match_dist;
+
+			if(EOF == fscanf(fp, "%d %d %*d %[^\n\r] ", &match_type, &match_dist, temp)){
+				printf("Corrupted Test File at Read Queries.\n");
+				exit(-1);
+			}
+
+            if(StartQuery_QueryTest_Insert(id, temp, match_type, match_dist) == EC_FAIL){
+                printf("StartQuery failed for QueryID %d\n",id);
+                exit(-1);
+            }
+        }
+	}
+
+
+
+	fclose(fp);
+    DestroyIndex_QueryTest();
+}
+
 TEST_LIST = {
 	{"Hamming Distance",hamming_distance_test},
 	{"Edit Distance",edit_distance_check},
@@ -328,5 +368,6 @@ TEST_LIST = {
 	{"Deduplicate Document: Number of Records",doc_dedupl_num},
 	{"Deduplicate Document: 'Born' Word Records",doc_dedupl_born},
 	{"Query Hash Table",query_handling},
+    {"Query Words in Structs",query_structs_handling},
 	{ NULL, NULL } // τερματίζουμε τη λίστα με NULL
 };
