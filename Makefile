@@ -26,20 +26,21 @@
 #
 # Current version: 1.0 (initial release)
 	
-TEST_NEW_O=test_driver/test_through.o
-IMPL_O=ref_impl/core.o
+TEST_NEW_O=test_driver/test_through.o 
+IMPL_O=ref_impl/core.o jobScheduler.o
 INCLUDE = ./tests
 
 CC  = gcc
 CXX = g++
-CFLAGS=-O3 -fPIC -Wall -g -I. -I./include
+CFLAGS=-O3 -fPIC -Wall -g -I. -I./include -pthread
 CXXFLAGS=$(CFLAGS)
-LDFLAGS=-lpthread
+LDFLAGS=-lpthread 
 SOURCES1 = $(INCLUDE)/unit_test.c
-OBJECTS1 = $(INCLUDE)/unit_test.o
+OBJECTS1 = $(INCLUDE)/unit_test.o jobScheduler.o
 OUTTEST = test
+FLAGS   = -g -c -Wall -fPIC -lm -pthread
 
-PROGRAMS=new-testdriver
+PROGRAMS=new-testdriver 
 TESTS = test
 
 LIBRARY=core
@@ -55,6 +56,9 @@ new-testdriver: lib $(TEST_NEW_O)
 
 unit_test.o: unit_test.c 
 	$(CC) -c unit_test.c
+
+jobScheduler.o: jobScheduler.c
+	$(CC) $(FLAGS) jobScheduler.c
 
 clean:
 	rm -f testdriver lib$(LIBRARY).so result.txt $(INCLUDE)/unit_test.o
