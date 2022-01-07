@@ -151,21 +151,22 @@ void* thread_Job_function(void* jobSch){
         pthread_mutex_lock(&(JS->work_mutex));
         //check if there is more work to be done
         //wait
-        while(JS->q->counter == 0 && !JS->stop){
+        while(JS->q->counter == 0){
             //lock work cond and unlock work mutex
             //printf("Thread going to sleep\n");
             pthread_cond_wait(&(JS->work_cond), &(JS->work_mutex));
         }
 
-        if(JS->stop){
-            
-            break;
-        }
+        //if(JS->stop){
+        // if(JS->q->counter == 0){printf("eh?\n");
+        //     //wake StartQuery
+        //     pthread_cond_broadcast(&(JS->work_done));
+        //     break;
+        // }
 
         work = queue_pop(JS->q);
         JS->alive_thread_count++;
         pthread_mutex_unlock(&(JS->work_mutex));
-
 
         if(work != NULL){
             printf("%d\n\n",pthread_self());
@@ -174,6 +175,11 @@ void* thread_Job_function(void* jobSch){
             free(work);
         }
 
+        if(JS->q->counter == 0){
+            //wake StartQuery
+            pthread_cond_broadcast(&(JS->work_done));
+            //break;
+        }
         pthread_mutex_lock(&(JS->work_mutex));
         JS->alive_thread_count--;
         
@@ -220,12 +226,12 @@ JobScheduler* initialize_jobScheduler(int num_threads){
     pthread_mutex_init(&(ptr->work_mutex),NULL);
     pthread_cond_init(&(ptr->work_cond),NULL);
     pthread_cond_init(&(ptr->working_cond),NULL);
-
+    pthread_cond_init(&(ptr->work_done),NULL);
 
     for(int i =0; i <num_threads;i++){
         //make thread
         pthread_create(&ptr->tids[i], NULL,thread_Job_function, ptr);
-        pthread_detach(ptr->tids[i]);
+        //pthread_detach(ptr->tids[i]);
     }
 
     printf("JobScheduler initialized\n");
@@ -233,5 +239,16 @@ JobScheduler* initialize_jobScheduler(int num_threads){
 }
 
 
+int wait_all_tasks_finish(JobScheduler* sch){
+    pthread_mutex_lock(&(sch->work_mutex));
+    while(sch->q->counter != 0){
+        pthread_cond_wait(&(sch->work_done), &(sch->work_mutex));
+    }
+    pthread_mutex_unlock(&(sch->work_mutex));
+    return 1;
+}
 
+int execute_all_jobs(JobScheduler* sch){
+    
+}
 

@@ -1360,7 +1360,7 @@ void worker(void *arg){//printf("worker %d\n",work++);
 }
 
 
-ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
+ErrorCode MatchDocument(DocID doc_id, const char* doc_str){printf("iteration %d\n",work++);
     Job *job;
     Arguments *args;
 
@@ -1783,6 +1783,8 @@ ErrorCode MatchDocumentForThread(DocID doc_id, const char* doc_str){
 }
 
 ErrorCode StartQuery(QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
+    //HERE, WAIT FOR ALL JOBS TO FINISH
+    wait_all_tasks_finish(jobScheduler);
 
     //add the query to the query hash table
     add_query(query_id%QUERY_HASH_BUCKETS,query_id,query_str, match_type, match_dist);
@@ -1886,6 +1888,8 @@ void delete_from_hamming(int query_id,char words[][32],int words_num){
 
 
 ErrorCode EndQuery(QueryID query_id){
+    //HERE, WAIT FOR ALL JOBS TO FINISH
+    
 	// Remove this query from the active query set
 
     //match type of query
@@ -2012,7 +2016,15 @@ ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, Ma
 //--------------------------------------------destructors
 
 ErrorCode DestroyIndex(){
-    for(int i=0; i<NUM_THREADS; i++){
+    //wait all jobs to finish
+    wait_all_tasks_finish(jobScheduler);
+
+    //broadcast all threads to end
+    pthread_mutex_lock(&(JS->work_mutex));
+    pthread_cond_broadcast(&(JS->last_doc));
+    pthread_mutex_unlock(&(JS->work_mutex));
+
+    for(int i=0; i<NUM_THREADS; i++){printf("Perimenw to thread %d\n",i);
         pthread_join(jobScheduler->tids[i],NULL);
     }
     if(batch_results_list->head == NULL){
@@ -2022,6 +2034,7 @@ ErrorCode DestroyIndex(){
     }else{
         printf("no prob here\n");
     }
+    
     Batch_results* temp = batch_results_list->head;
     while(temp != NULL){
         query_ids* head = temp->results;
@@ -2032,7 +2045,7 @@ ErrorCode DestroyIndex(){
         }
         temp=temp->next;printf("\n");
     }
-    pthread_barrier_wait (&barrier);
+
     delete_hash_tables_edit();
     delete_hash_tables_hamming();
     delete_hash_tables_exact();

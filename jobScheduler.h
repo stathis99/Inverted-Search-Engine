@@ -61,13 +61,17 @@ typedef struct JobScheduler{
     pthread_t* tids;
 
     //mutex for all locking
-    pthread_mutex_t  work_mutex;
+    pthread_mutex_t work_mutex;
 
     //signals that there is work to be processed
-    pthread_cond_t   work_cond;
+    pthread_cond_t work_cond;
 
     //signals that there are no threads processing
-    pthread_cond_t   working_cond;
+    pthread_cond_t working_cond;
+
+    pthread_cond_t work_done;
+
+    pthread_cond_t last_doc;
 
     size_t alive_thread_count;
 
@@ -100,5 +104,10 @@ JobScheduler* initialize_jobScheduler(int);
 
 //initialize and return a job
 Job* create_job(thread_funct function, Arguments* arg_struct);
+
+//wait for all tasks to finish 
+int wait_all_tasks_finish(JobScheduler* sch);
+
+int execute_all_jobs(JobScheduler* sch);
 
 #endif
