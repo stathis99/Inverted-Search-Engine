@@ -2014,19 +2014,19 @@ ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, Ma
 
 
 //--------------------------------------------destructors
-
 ErrorCode DestroyIndex(){
     //wait all jobs to finish
     wait_all_tasks_finish(jobScheduler);
+    
 
     //broadcast all threads to end
-    pthread_mutex_lock(&(JS->work_mutex));
-    pthread_cond_broadcast(&(JS->last_doc));
-    pthread_mutex_unlock(&(JS->work_mutex));
+    pthread_mutex_lock(&(jobScheduler->work_mutex));
+    jobScheduler->last_doc = 1;
+    pthread_mutex_unlock(&(jobScheduler->work_mutex));
 
     for(int i=0; i<NUM_THREADS; i++){printf("Perimenw to thread %d\n",i);
         pthread_join(jobScheduler->tids[i],NULL);
-    }
+    }printf("Girisan ola\n");
     if(batch_results_list->head == NULL){
         printf("head is null\n");
     }else if(batch_results_list->head->results == NULL){

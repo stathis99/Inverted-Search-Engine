@@ -4,7 +4,7 @@
 
 
 //--------------JobScheduler related functions--------------//
-
+extern int flag;
 //create and return the queue
 Queue* create_queue(){
 
@@ -154,6 +154,14 @@ void* thread_Job_function(void* jobSch){
         while(JS->q->counter == 0){
             //lock work cond and unlock work mutex
             //printf("Thread going to sleep\n");
+            // if(JS->last_doc == 1){   //corner case, thread gets stuck here
+            //     JS->thread_count--;
+            //     //pthread_cond_signal(&(JS->working_cond));
+            //     pthread_mutex_unlock(&(JS->work_mutex));
+            //     pthread_cond_broadcast(&(JS->work_done));
+            //     printf("end\n");
+            //     return NULL;
+            // }
             pthread_cond_wait(&(JS->work_cond), &(JS->work_mutex));
         }
 
@@ -177,8 +185,21 @@ void* thread_Job_function(void* jobSch){
 
         if(JS->q->counter == 0){
             //wake StartQuery
+            //pthread_cond_broadcast(&(JS->work_done));
+            
+            //are we done? break and terminate thread
+            // pthread_mutex_lock(&(JS->work_mutex));
+            // while(JS->q->counter == 0){
+
+            // }
+            // pthread_mutex_unlock(&(JS->work_mutex));
+            pthread_mutex_lock(&(JS->work_mutex));
             pthread_cond_broadcast(&(JS->work_done));
-            //break;
+            if(JS->last_doc == 1){printf("Nothing else\n");
+                pthread_mutex_unlock(&(JS->work_mutex));
+                break;
+            }
+            pthread_mutex_unlock(&(JS->work_mutex));
         }
         pthread_mutex_lock(&(JS->work_mutex));
         JS->alive_thread_count--;
@@ -210,6 +231,7 @@ JobScheduler* initialize_jobScheduler(int num_threads){
     ptr->alive_thread_count = 0;
     ptr->thread_count = num_threads;
     ptr->stop = 0;
+    ptr->last_doc = 0;
     // void* temp;
 
     // Arguments* args = malloc(sizeof(Arguments));

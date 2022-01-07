@@ -1,5 +1,0 @@
-Start Test ...
-Your program has successfully passed all tests.
-Processed Documents = 0 documents.  (all documents are processed)
-Time = 2 milli-seconds [2ms]
-Throughput = 0.000 documents/second.
