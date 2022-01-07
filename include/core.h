@@ -39,6 +39,9 @@ extern "C" {
 #include <string.h>
 #include <stdint.h>
 
+
+#define NUM_THREADS 3
+
 #define QUERY_HASH_BUCKETS 100
 #define BLOOM_FILTER_SIZE 500
 #define EDIT_HASH_BUCKETS 100
@@ -139,7 +142,7 @@ typedef struct query_ids{
 }query_ids;
 
 typedef struct Words_Hash_Bucket{
-    word this_word[32];
+    word this_word[33];
     struct Words_Hash_Bucket* next;
 }Words_Hash_Bucket;
 
@@ -188,6 +191,7 @@ ErrorCode DestroyIndex();
 typedef unsigned int DocID;
 void add_payload(struct Payload* payload,int queryId, int dist);
 ErrorCode MatchDocument(DocID doc_id, const char* doc_str);
+ErrorCode MatchDocumentForThread(DocID doc_id, const char* doc_str);
 ErrorCode InitializeIndex();
 unsigned int djb2(const void *_str);
 unsigned int jenkins(const void *_str);
@@ -204,6 +208,13 @@ void print_index();
 void delete_from_hamming(int query_id,char words[][32],int words_num);
 void delete_from_edit(int query_id,char words[][32],int words_num);
 void delete_from_exact(int query_id,char words[][32],int words_num);
+
+//new functions for threads, using local results list
+void lookup_exact_thread(const word* w, Hash_table_exact** hash_table_exact, int word_len, result_node** r_node);
+void lookup_entry_index_hamming_thread(const word* w,int docWordLen, bk_index* ix, int threshold, result_node_bk** r_node_bk);
+void look_for_threshold_hamming_thread(struct Payload* payload,int threshold,const word* q_w,const word* w,bk_index temp, result_node_bk** r_node_bk);
+void lookup_entry_index_edit_thread(const word* w,int docWordLen, bk_index* ix, int threshold, result_node_bk** r_node_bk);
+void look_for_threshold_edit_thread(struct Payload* payload,int threshold,const word* q_w,const word* w,bk_index temp, result_node_bk** r_node_bk);
 
 #ifdef __cplusplus
 }
