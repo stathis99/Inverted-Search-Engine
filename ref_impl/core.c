@@ -981,7 +981,7 @@ void worker(void *arg){//printf("worker %d\n",work++);
     char* temp = args->doc_str; 
     read_word = strtok(temp, " ");
     int docWordLen;
-
+    int results_f = 0;
     while(read_word != NULL){
         docWordLen = strlen(read_word);
 		//printf("%s\n",read_word);
@@ -1039,7 +1039,7 @@ void worker(void *arg){//printf("worker %d\n",work++);
         read_word = strtok(NULL, " ");
     }
     query_ids* queries_head_w = NULL;
-   //printf("RESULTS FROM EXACT: \n\n");
+    //printf("RESULTS FROM EXACT: \n\n");
     result_node* temp_node1 = r_node_w;
     while(temp_node1 != NULL){
 
@@ -1074,7 +1074,7 @@ void worker(void *arg){//printf("worker %d\n",work++);
                     }
                     if(to_find == 0){
                         //printf("Query %d fully matched\n", temp_payload->queryId);
-                        results_found++;
+                        results_f++;
                         if(queries_head_w == NULL){       //first query, insert it at head
                             queries_head_w = malloc(sizeof(query_ids));
                             queries_head_w->next = NULL;
@@ -1174,7 +1174,7 @@ void worker(void *arg){//printf("worker %d\n",work++);
                     }
                     if(to_find == 0){
                         //printf("Query %d fully matched\n", temp_payload->queryId);
-                        results_found++;
+                        results_f++;
                         if(queries_head_w == NULL){       //first query, insert it at head
                             queries_head_w = malloc(sizeof(query_ids));
                             queries_head_w->next = NULL;
@@ -1265,7 +1265,7 @@ void worker(void *arg){//printf("worker %d\n",work++);
                     }
                     if(to_find == 0){
                         //printf("Query %d fully matched\n", temp_payload->queryId);
-                        results_found++;
+                        results_f++;
                         if(queries_head_w == NULL){       //first query, insert it at head
                             queries_head_w = malloc(sizeof(query_ids));
                             queries_head_w->next = NULL;
@@ -1331,15 +1331,15 @@ void worker(void *arg){//printf("worker %d\n",work++);
   	// pthread_mutex_unlock(&mu);
 
 	//print query ids we found
-    /*query_ids* q_temp = queries_head_w;
+    query_ids* q_temp = queries_head_w;
     pthread_mutex_lock(&printf_mutex);
-    printf("r %d ",args->doc_id);
+    printf("r %d %d ",args->doc_id,results_f);
     while(q_temp != NULL){
         printf("%d ",q_temp->queryID);
         q_temp = q_temp->next;
     }
     printf("reaches here\n");
-    pthread_mutex_unlock(&printf_mutex);*/
+    pthread_mutex_unlock(&printf_mutex);
 
     //add the results of a doc in results list
 
@@ -2014,19 +2014,19 @@ ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, Ma
 
 
 //--------------------------------------------destructors
+
 ErrorCode DestroyIndex(){
     //wait all jobs to finish
     wait_all_tasks_finish(jobScheduler);
-    
 
     //broadcast all threads to end
     pthread_mutex_lock(&(jobScheduler->work_mutex));
-    jobScheduler->last_doc = 1;
+    pthread_cond_broadcast(&(jobScheduler->last_doc));
     pthread_mutex_unlock(&(jobScheduler->work_mutex));
 
     for(int i=0; i<NUM_THREADS; i++){printf("Perimenw to thread %d\n",i);
         pthread_join(jobScheduler->tids[i],NULL);
-    }printf("Girisan ola\n");
+    }
     if(batch_results_list->head == NULL){
         printf("head is null\n");
     }else if(batch_results_list->head->results == NULL){

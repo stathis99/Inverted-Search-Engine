@@ -71,9 +71,7 @@ typedef struct JobScheduler{
 
     pthread_cond_t work_done;
 
-    int last_doc;
-
-    pthread_cond_t last_doc_cond;
+    pthread_cond_t last_doc;
 
     size_t alive_thread_count;
 

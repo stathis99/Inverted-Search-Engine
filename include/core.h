@@ -40,7 +40,7 @@ extern "C" {
 #include <stdint.h>
 
 
-#define NUM_THREADS 3
+#define NUM_THREADS 1
 
 #define QUERY_HASH_BUCKETS 100
 #define BLOOM_FILTER_SIZE 500
