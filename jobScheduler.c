@@ -169,7 +169,7 @@ void* thread_Job_function(void* jobSch){
         pthread_mutex_unlock(&(JS->work_mutex));
 
         if(work != NULL){
-            printf("%d\n\n",pthread_self());
+           //printf("%d\n\n",pthread_self());
             work->func(work->args);
             //destroy job
             free(work);

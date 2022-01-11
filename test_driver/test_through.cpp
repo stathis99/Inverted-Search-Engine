@@ -322,8 +322,8 @@ int main(int argc, char* argv[])
 {
 #ifdef TEST_MACHINE
 	FILE* out_file=fopen("result.txt", "wt");
-	if(argc<=1) TestSigmod("./test_data/small_test.txt", 60, out_file);
-	//if(argc<=1) TestSigmod("./test_data/tiny_test.txt", 60, out_file);
+	//if(argc<=1) TestSigmod("./test_data/small_test.txt", 60, out_file);
+	if(argc<=1) TestSigmod("./test_data/tiny_test.txt", 60, out_file);
 #else
 	FILE* out_file=stdout;
 	if(argc<=1) TestSigmod("small_test.txt", 0, out_file);
