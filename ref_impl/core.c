@@ -966,10 +966,6 @@ void worker(void *arg){
  
     //edw gia na paixei afto thelei mutex
 
-	//*(args->activeThreads) -= 1; 
-    
-    //printf("worker get id = %d %s\n\n",args->doc_id ,args->doc_str);
-
     //printf("worker prints %d \n",args->doc_id);
 
     //worker is doing matchdocument work -- aftes einai oi listes pou mpainoun ta results
@@ -989,10 +985,9 @@ void worker(void *arg){
     const word* read_word;
     //pthread_mutex_lock(&args_mutex);
     char* temp = args->doc_str;
-    read_word = strtok(temp, " ");
+    read_word = strtok_r(temp, " ",&temp);
     //pthread_mutex_unlock(&args_mutex);
 
-   
     int docWordLen;
     int results_f = 0;
 
@@ -1018,7 +1013,7 @@ void worker(void *arg){
             }
             if(found == 1){
                 //word exists, skip
-                read_word = strtok(NULL, " ");
+                read_word = strtok_r(temp, " ",&temp);
                 continue;                
             }else{
                 //add it to the hash buckets, search it in structs
@@ -1050,11 +1045,8 @@ void worker(void *arg){
             lookup_exact_thread(read_word,hash_table_exact,docWordLen,&r_node_w);
         }
 
-        read_word = strtok(NULL, " ");
+        read_word = strtok_r(temp, " ",&temp);
     }
-
-
-
 
     query_ids* queries_head_w = NULL;
     //printf("RESULTS FROM EXACT: \n\n");
@@ -1342,31 +1334,6 @@ void worker(void *arg){
         temp_node3 = temp_node3->next;
     }
 
-
-
-    // 	//signal
-	// pthread_mutex_lock(&mu);
-  	// pthread_cond_signal(&cond);
-  	// pthread_mutex_unlock(&mu);
-
-	//print query ids we found
-    query_ids* q_temp = queries_head_w;
-    pthread_mutex_lock(&printf_mutex);
-    //printf("r %d %d ",args->doc_id,results_f);
-    while(q_temp != NULL){
-        //printf("%d ",q_temp->queryID);
-        q_temp = q_temp->next;
-    }
-    printf("\n\n");
-
-
-    //add the results of a doc in results list
-
-    //add a mutex here
-
-	//add_batch_result(args->doc_id,results_found,queries_head_w);
-    pthread_mutex_unlock(&printf_mutex);
-
     //free w_hash_table here
     for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
         while(w_hash_table->words_hash_buckets[i] != NULL){
@@ -1376,14 +1343,25 @@ void worker(void *arg){
         }
     }
     free(w_hash_table);
-    
+    query_ids* q_temp = queries_head_w;
+    pthread_mutex_lock(&printf_mutex);
+    printf("r %d %d ",args->doc_id,results_f);
+    while(q_temp != NULL){
+        printf("%d ",q_temp->queryID);
+        q_temp = q_temp->next;
+    }
+    printf("reaches here\n");
+    pthread_mutex_unlock(&printf_mutex);
+
+        //add a mutex here
+    pthread_mutex_lock(&printf_mutex);
+	add_batch_result(args->doc_id,results_found,queries_head_w);
+    pthread_mutex_unlock(&printf_mutex);
 
 }
 
 
 ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
-
-
 
     //printf("iteration %d\n",work++);
     Job *job;
