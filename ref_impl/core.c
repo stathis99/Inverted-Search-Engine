@@ -960,8 +960,6 @@ void add_batch_result(int doc_id, int num_res, query_ids* results){
 int work =0;
 void worker(void *arg){
 
-
-
     //printf("worker %d\n",work++);
 
     Arguments *args = arg;
@@ -1000,7 +998,7 @@ void worker(void *arg){
 
     while(read_word != NULL){
         docWordLen = strlen(read_word);
-		printf("%d %s\n\n",args->doc_id,read_word);
+		//printf("%d %s\n\n",args->doc_id,read_word);
         //document deduplication here
         //hash this word to see if it exists
         int hash = djb2(read_word) % WORD_HASH_TABLE_BUCKETS;

@@ -69,7 +69,9 @@ void queue_insert(JobScheduler* JS, Job* j){
     //lock while insertion
     //its critical section
     pthread_mutex_lock(&(JS->work_mutex));
-
+//printf("inserting %s\n",j->args->doc_str,j->args->doc_id);
+Arguments* arg=(Arguments*)(j->args);
+printf("inserting %d %s\n",arg->doc_id,arg->doc_str);
     //if the queue is empty
     if(JS->q->counter == 0){
         //update tail and head
