@@ -151,40 +151,39 @@ void* thread_Job_function(void* jobSch){
         pthread_mutex_lock(&(JS->work_mutex));
         //check if there is more work to be done
         //wait
-        while(JS->q->counter == 0){
+        while(JS->q->counter == 0 && !JS->last_doc){
             //lock work cond and unlock work mutex
             //printf("Thread going to sleep\n");
             pthread_cond_wait(&(JS->work_cond), &(JS->work_mutex));
         }
-
-        //if(JS->stop){
-        // if(JS->q->counter == 0){printf("eh?\n");
-        //     //wake StartQuery
-        //     pthread_cond_broadcast(&(JS->work_done));
-        //     break;
-        // }
 
         work = queue_pop(JS->q);
         JS->alive_thread_count++;
         pthread_mutex_unlock(&(JS->work_mutex));
 
         if(work != NULL){
-            
-           //printf("%d\n\n",pthread_self());
+            //printf("%d\n\n",pthread_self());
             work->func(work->args);
             //destroy job
             free(work);
         }
 
+        pthread_mutex_lock(&(JS->work_mutex));
         if(JS->q->counter == 0){
             //wake StartQuery
             pthread_cond_broadcast(&(JS->work_done));
+            if(JS->last_doc == 1){
+                printf("Thread finish\n");
+                break;
+            }
+            //pthread_mutex_unlock(&(JS->work_mutex));
             //break;
         }
+        pthread_mutex_unlock(&(JS->work_mutex));
         pthread_mutex_lock(&(JS->work_mutex));
         JS->alive_thread_count--;
         
-        if(!JS->stop && JS->alive_thread_count == 0 && JS->q->counter == 0){
+        if(JS->last_doc == 1 && JS->alive_thread_count == 0 && JS->q->counter == 0){
             pthread_cond_signal(&(JS->working_cond));
         }
         pthread_mutex_unlock(&(JS->work_mutex));
@@ -211,15 +210,7 @@ JobScheduler* initialize_jobScheduler(int num_threads){
     ptr->alive_thread_count = 0;
     ptr->thread_count = num_threads;
     ptr->stop = 0;
-    // void* temp;
 
-    // Arguments* args = malloc(sizeof(Arguments));
-    // args->argv = malloc(sizeof(int));
-    // int i = 555;
-    // args->argv[0] = i;
-    // Job* job = create_job(NULL,args);
-    // queue_insert(ptr->q,job);
-   
     //make n numThreads in array
     ptr->tids = malloc(sizeof(pthread_t)*num_threads);
 
@@ -230,9 +221,7 @@ JobScheduler* initialize_jobScheduler(int num_threads){
     pthread_cond_init(&(ptr->work_done),NULL);
 
     for(int i =0; i <num_threads;i++){
-        //make thread
         pthread_create(&ptr->tids[i], NULL,thread_Job_function, ptr);
-        //pthread_detach(ptr->tids[i]);
     }
 
     printf("JobScheduler initialized\n");

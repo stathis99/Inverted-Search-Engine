@@ -1355,7 +1355,7 @@ void worker(void *arg){
 
         //add a mutex here
     pthread_mutex_lock(&printf_mutex);
-	add_batch_result(args->doc_id,results_found,queries_head_w);
+	add_batch_result(args->doc_id,results_f,queries_head_w);
     pthread_mutex_unlock(&printf_mutex);
 
 }
@@ -2024,7 +2024,7 @@ ErrorCode DestroyIndex(){
 
     //broadcast all threads to end
     pthread_mutex_lock(&(jobScheduler->work_mutex));
-    pthread_cond_broadcast(&(jobScheduler->last_doc));
+    jobScheduler->last_doc = 1;
     pthread_mutex_unlock(&(jobScheduler->work_mutex));
 
     for(int i=0; i<NUM_THREADS; i++){
