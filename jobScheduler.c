@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include "jobScheduler.h"
 
-
 //--------------JobScheduler related functions--------------//
 
 //create and return the queue
@@ -59,7 +58,7 @@ void free_queue_node(queueNode* n){
 }
 
 //add a job to the end of the queue
-void queue_insert(JobScheduler* JS, Job* j){
+void submit_job(JobScheduler* JS, Job* j){
 
     queueNode* node = NULL;
 
@@ -96,7 +95,7 @@ void queue_insert(JobScheduler* JS, Job* j){
 }
 
 //pop first job inserted
-Job* queue_pop(Queue* q){
+Job* pop_job(Queue* q){
 
     queueNode *node = NULL;
     Job *j = NULL;
@@ -140,60 +139,58 @@ Job* create_job(thread_funct function, Arguments* arg_struct){
 
 }
 
-
 void* thread_Job_function(void* jobSch){
 
-    JobScheduler* JS = (JobScheduler*) jobSch;
+    JobScheduler *JS = (JobScheduler *) jobSch;
     Job *work;
 
-    while(1){
-        // lock mutex to secure the job scheduler numbers
+    while(!JS->last_doc){
         pthread_mutex_lock(&(JS->work_mutex));
-        //check if there is more work to be done
-        //wait
         while(JS->q->counter == 0 && !JS->last_doc){
-            //lock work cond and unlock work mutex
-            //printf("Thread going to sleep\n");
+
             pthread_cond_wait(&(JS->work_cond), &(JS->work_mutex));
         }
 
-        work = queue_pop(JS->q);
+        if(JS->last_doc && JS->q->counter == 0){  
+            break;
+        }
+
+        work = pop_job(JS->q);
         JS->alive_thread_count++;
         pthread_mutex_unlock(&(JS->work_mutex));
 
         if(work != NULL){
-            //printf("%d\n\n",pthread_self());
             work->func(work->args);
             //destroy job
+            Arguments* arguments = work->args;
+            free(arguments->doc_str);
+            free(arguments);
             free(work);
         }
-
-        pthread_mutex_lock(&(JS->work_mutex));
-        if(JS->q->counter == 0){
-            //wake StartQuery
-            pthread_cond_broadcast(&(JS->work_done));
-            if(JS->last_doc == 1){
-                printf("Thread finish\n");
-                break;
-            }
-            //pthread_mutex_unlock(&(JS->work_mutex));
-            //break;
-        }
-        pthread_mutex_unlock(&(JS->work_mutex));
+        
         pthread_mutex_lock(&(JS->work_mutex));
         JS->alive_thread_count--;
-        
-        if(JS->last_doc == 1 && JS->alive_thread_count == 0 && JS->q->counter == 0){
-            pthread_cond_signal(&(JS->working_cond));
+        if(JS->q->counter == 0 && JS->alive_thread_count == 0){
+            pthread_cond_broadcast(&(JS->work_done));
+            if(JS->stop == 1 || JS->last_doc == 1){
+                break;
+            }
+
         }
+        if(JS->stop == 1 || JS->last_doc == 1){
+            //pthread_cond_broadcast(&(JS->work_done));
+            break;
+        }
+        /*if(!JS->stop && JS->alive_thread_count == 0 && JS->q->counter == 0){
+            pthread_cond_signal(&(JS->working_cond));
+        }*/
         pthread_mutex_unlock(&(JS->work_mutex));
     }
 
     JS->thread_count--;
     pthread_cond_signal(&(JS->working_cond));
     pthread_mutex_unlock(&(JS->work_mutex));
-    printf("end\n");
-
+    
     return NULL;
 }
 
@@ -210,7 +207,7 @@ JobScheduler* initialize_jobScheduler(int num_threads){
     ptr->alive_thread_count = 0;
     ptr->thread_count = num_threads;
     ptr->stop = 0;
-
+    ptr->last_doc = 0;
     //make n numThreads in array
     ptr->tids = malloc(sizeof(pthread_t)*num_threads);
 
@@ -222,6 +219,7 @@ JobScheduler* initialize_jobScheduler(int num_threads){
 
     for(int i =0; i <num_threads;i++){
         pthread_create(&ptr->tids[i], NULL,thread_Job_function, ptr);
+        pthread_detach(ptr->tids[i]);
     }
 
     printf("JobScheduler initialized\n");

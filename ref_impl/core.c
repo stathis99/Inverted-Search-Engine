@@ -36,12 +36,10 @@ Batch_results_list* batch_results_list;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
 
-pthread_mutex_t printf_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t args_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-
+pthread_mutex_t result_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t result_cond = PTHREAD_COND_INITIALIZER;
 JobScheduler *jobScheduler;
-
+int results = 0;
 //----------------------------------------distance functions
 
 //calculates levestein distance
@@ -957,18 +955,8 @@ void add_batch_result(int doc_id, int num_res, query_ids* results){
 
 }
 
-int work =0;
 void worker(void *arg){
-
-    //printf("worker %d\n",work++);
-
     Arguments *args = arg;
- 
-    //edw gia na paixei afto thelei mutex
-
-    //printf("worker prints %d \n",args->doc_id);
-
-    //worker is doing matchdocument work -- aftes einai oi listes pou mpainoun ta results
 
     result_node* r_node_w = NULL;
     result_node_bk* r_node_bk_hamming_w = NULL;
@@ -980,13 +968,10 @@ void worker(void *arg){
         w_hash_table->words_hash_buckets[i] = NULL;
     }
 
-    int results_found = 0;
     //for every word in document
     const word* read_word;
-    //pthread_mutex_lock(&args_mutex);
     char* temp = args->doc_str;
     read_word = strtok_r(temp, " ",&temp);
-    //pthread_mutex_unlock(&args_mutex);
 
     int docWordLen;
     int results_f = 0;
@@ -1334,6 +1319,22 @@ void worker(void *arg){
         temp_node3 = temp_node3->next;
     }
 
+    query_ids* q_temp = queries_head_w;
+    /*pthread_mutex_lock(&printf_mutex);
+    printf("r %d %d ",args->doc_id,results_f);
+    while(q_temp != NULL){
+        printf("%d ",q_temp->queryID);
+        q_temp = q_temp->next;
+    }
+    printf("reaches here\n");
+    pthread_mutex_unlock(&printf_mutex);*/
+
+    pthread_mutex_lock(&result_mutex);
+	add_batch_result(args->doc_id,results_f,queries_head_w);
+    pthread_cond_signal(&result_cond);
+    results++;
+    pthread_mutex_unlock(&result_mutex);
+
     //free w_hash_table here
     for(int i=0; i< WORD_HASH_TABLE_BUCKETS; i++){
         while(w_hash_table->words_hash_buckets[i] != NULL){
@@ -1343,20 +1344,25 @@ void worker(void *arg){
         }
     }
     free(w_hash_table);
-    query_ids* q_temp = queries_head_w;
-    pthread_mutex_lock(&printf_mutex);
-    printf("r %d %d ",args->doc_id,results_f);
-    while(q_temp != NULL){
-        printf("%d ",q_temp->queryID);
-        q_temp = q_temp->next;
-    }
-    printf("reaches here\n");
-    pthread_mutex_unlock(&printf_mutex);
 
-        //add a mutex here
-    pthread_mutex_lock(&printf_mutex);
-	add_batch_result(args->doc_id,results_f,queries_head_w);
-    pthread_mutex_unlock(&printf_mutex);
+    //free local lists used
+    while(r_node_w != NULL){
+        result_node* temp = r_node_w; 
+        r_node_w = r_node_w->next;
+        free(temp);
+    }
+
+    while(r_node_bk_edit_w != NULL){
+        result_node_bk* temp = r_node_bk_edit_w; 
+        r_node_bk_edit_w = r_node_bk_edit_w->next;
+        free(temp);
+    }
+
+    while(r_node_bk_hamming_w != NULL){
+        result_node_bk* temp = r_node_bk_hamming_w; 
+        r_node_bk_hamming_w = r_node_bk_hamming_w->next;
+        free(temp);
+    }
 
 }
 
@@ -1376,22 +1382,10 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
     args->doc_str = malloc(strlen(doc_str)+1);
     
     strcpy(args->doc_str,doc_str);
-
-    //printf("worker get id = %d %s\n\n",args->doc_id ,args->doc_str);
 	
     job = create_job(worker,args);
   
-    queue_insert(jobScheduler,job);
-    
-
-	// //wait worker to run
-	// pthread_mutex_lock(&mu);
-	// pthread_cond_wait(&cond,&mu);
-	// pthread_mutex_unlock(&mu);
-
-
-
-    //MatchDocumentForThread(doc_id,doc_str);
+    submit_job(jobScheduler,job);
 
 }
 
@@ -2017,7 +2011,6 @@ ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, Ma
 
 
 //--------------------------------------------destructors
-
 ErrorCode DestroyIndex(){
     //wait all jobs to finish
     wait_all_tasks_finish(jobScheduler);
@@ -2025,29 +2018,32 @@ ErrorCode DestroyIndex(){
     //broadcast all threads to end
     pthread_mutex_lock(&(jobScheduler->work_mutex));
     jobScheduler->last_doc = 1;
+    jobScheduler->stop = 1;
     pthread_mutex_unlock(&(jobScheduler->work_mutex));
 
-    for(int i=0; i<NUM_THREADS; i++){
-        printf("Perimenw to thread %d\n",i);
-        pthread_join(jobScheduler->tids[i],NULL);
-    }
-    if(batch_results_list->head == NULL){
-        printf("head is null\n");
-    }else if(batch_results_list->head->results == NULL){
-        printf("res is null\n");
-    }else{
-        printf("no prob here\n");
-    }
+    // for(int i=0; i<NUM_THREADS; i++){
+    //     printf("Perimenw to thread %d\n",i);
+    //     //pthread_detach(jobScheduler->tids[i]);
+    //     //pthread_join(jobScheduler->tids[i],NULL);
+    // }
     
-    Batch_results* temp = batch_results_list->head;
-    while(temp != NULL){
-        query_ids* head = temp->results;
-        printf("r %d %d ",temp->doc_id,temp->num_res);
-        while(head != NULL){
-            printf("%d ",head->queryID);
-            head= head->next;
+    //free batch list
+    if(batch_results_list != NULL){
+        while(batch_results_list->head != NULL){
+            Batch_results* temp = batch_results_list->head;
+            query_ids* res = temp->results;
+            while(res != NULL){
+                query_ids* temp_r = res;
+                res = res->next;
+                free(temp_r);
+            }
+            batch_results_list->head = batch_results_list->head->next;
+            free(temp);
         }
-        temp=temp->next;printf("\n");
+    }
+
+    if(batch_results_list != NULL){
+        free(batch_results_list);
     }
 
     delete_hash_tables_edit();
@@ -2068,28 +2064,6 @@ ErrorCode DestroyIndex(){
     free(Q_Hash_Table->query_hash_buckets);
     free(Q_Hash_Table);
 
-    //free result lists
-    // while(r_node != NULL){
-    //     result_node* temp = r_node; 
-    //     r_node = r_node->next;
-    //     free(temp);
-    // }
-
-    // while(r_node_bk_edit != NULL){
-    //     result_node_bk* temp = r_node_bk_edit; 
-    //     r_node_bk_edit = r_node_bk_edit->next;
-    //     free(temp);
-    // }
-
-    // while(r_node_bk_hamming != NULL){
-    //     result_node_bk* temp = r_node_bk_hamming; 
-    //     r_node_bk_hamming = r_node_bk_hamming->next;
-    //     free(temp);
-    // }
-
-    if(batch_results_list != NULL){
-        free(batch_results_list);
-    }
     free_words_hash_table();
     return EC_SUCCESS;
 }
@@ -2263,7 +2237,13 @@ void print_query_list(){
 }
 
 ErrorCode GetNextAvailRes(DocID* p_doc_id, unsigned int* p_num_res, QueryID** p_query_ids){
-    	
+    pthread_mutex_lock(&result_mutex);
+    while(results == 0){
+        pthread_cond_wait(&result_cond,&result_mutex);
+    }
+    results--;
+    pthread_mutex_unlock(&result_mutex);
+
 	*p_doc_id = batch_results_list->head->doc_id;
     *p_num_res = batch_results_list->head->num_res;
     *p_query_ids = (unsigned int*)malloc(sizeof(unsigned int)*(*p_num_res));
@@ -2273,7 +2253,6 @@ ErrorCode GetNextAvailRes(DocID* p_doc_id, unsigned int* p_num_res, QueryID** p_
         temp = temp->next;
     }
 	
-
 	temp = batch_results_list->head->results;
 	Batch_results* previous = batch_results_list->head ;
 	batch_results_list->head = batch_results_list->head->next;

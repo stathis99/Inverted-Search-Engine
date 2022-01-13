@@ -58,7 +58,7 @@ unit_test.o: unit_test.c
 	$(CC) -c unit_test.c
 
 jobScheduler.o: jobScheduler.c
-	$(CC) $(FLAGS) jobScheduler.c
+	$(CC) $(FLAGS) jobScheduler.c 
 
 clean:
 	rm -f testdriver lib$(LIBRARY).so result.txt $(INCLUDE)/unit_test.o

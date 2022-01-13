@@ -111,7 +111,7 @@ void TestSigmod(const char* test_file_str, int time_limit_seconds, FILE* out_fil
 				unsigned int doc_id=0;
 				unsigned int num_res=0;
 				unsigned int* query_ids=0;
-/*
+
 				ErrorCode err=GetNextAvailRes(&doc_id, &num_res, &query_ids);
 				if(err==EC_NO_AVAIL_RES)
 				{
@@ -174,7 +174,7 @@ void TestSigmod(const char* test_file_str, int time_limit_seconds, FILE* out_fil
 
 				num_processed_docs++;
 				//if(num_processed_docs%1000==0) {fprintf(out_file, "Your program has processed %u documents.\n", num_processed_docs); fflush(out_file);}
-			*/}
+			}
 
 			for(i=0;i<num_cur_results;i++) {free(cur_results[i]); cur_results[i]=0; cur_results_size[i]=0; cur_results_ret[i]=false;}
 			num_cur_results=0;
@@ -323,7 +323,6 @@ int main(int argc, char* argv[])
 #ifdef TEST_MACHINE
 	FILE* out_file=fopen("result.txt", "wt");
 	if(argc<=1) TestSigmod("./test_data/small_test.txt", 60, out_file);
-	//if(argc<=1) TestSigmod("./test_data/tiny_test.txt", 60, out_file);
 #else
 	FILE* out_file=stdout;
 	if(argc<=1) TestSigmod("small_test.txt", 0, out_file);

@@ -388,11 +388,6 @@ void worker(void *arg)
 
 void test_JobScheduler()
 {
-	// sparceMatrix * matrix = createSparceMatrix();
-    // for(int i = 0; i < 10; i++)
-    // {
-    //     insertMatrixNode(matrix,i,(i*0.1));
-    // }
 
     JobScheduler *jb;
     Job *job;
@@ -403,8 +398,6 @@ void test_JobScheduler()
 	args = malloc(sizeof(Arguments));
 	args->activeThreads = &num;
 
-	//args->classfier = NULL;
-	
 
     jb = initialize_jobScheduler(1);
 
@@ -412,7 +405,7 @@ void test_JobScheduler()
         
         job = create_job(worker,args);
   
-        queue_insert(jb,job);
+        submit_job(jb,job);
     }
     
 	//wait worker to run

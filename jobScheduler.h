@@ -91,13 +91,13 @@ Queue* create_queue();
 queueNode* create_queue_node(Job *);
 
 //add a job to the end of the queue
-void queue_insert(JobScheduler *, Job *);
+void submit_job(JobScheduler *, Job *);
 
 //destroys queue node and the job
 void free_queue_node(queueNode* n);
 
 //pop first job inserted
-Job* queue_pop(Queue *);
+Job* pop_job(Queue *);
 
 //function that initialises and returns job scheduler 
 JobScheduler* initialize_jobScheduler(int);
