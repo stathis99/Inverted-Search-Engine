@@ -181,14 +181,12 @@ void* thread_Job_function(void* jobSch){
             //pthread_cond_broadcast(&(JS->work_done));
             break;
         }
-        /*if(!JS->stop && JS->alive_thread_count == 0 && JS->q->counter == 0){
-            pthread_cond_signal(&(JS->working_cond));
-        }*/
+
         pthread_mutex_unlock(&(JS->work_mutex));
     }
 
     JS->thread_count--;
-    pthread_cond_signal(&(JS->working_cond));
+
     pthread_mutex_unlock(&(JS->work_mutex));
     
     return NULL;
@@ -237,6 +235,6 @@ int wait_all_tasks_finish(JobScheduler* sch){
 }
 
 int execute_all_jobs(JobScheduler* sch){
-    
+    return 1;
 }
 

@@ -7,10 +7,6 @@
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
 
-
-
-
-
 char temp[MAX_DOC_LENGTH];
 
 void doc_dedupl_string(){

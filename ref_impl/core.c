@@ -955,7 +955,7 @@ void add_batch_result(int doc_id, int num_res, query_ids* results){
 
 }
 
-void worker(void *arg){
+void MatchDocument_Thread(void *arg){
     Arguments *args = arg;
 
     result_node* r_node_w = NULL;
@@ -1319,16 +1319,6 @@ void worker(void *arg){
         temp_node3 = temp_node3->next;
     }
 
-    query_ids* q_temp = queries_head_w;
-    /*pthread_mutex_lock(&printf_mutex);
-    printf("r %d %d ",args->doc_id,results_f);
-    while(q_temp != NULL){
-        printf("%d ",q_temp->queryID);
-        q_temp = q_temp->next;
-    }
-    printf("reaches here\n");
-    pthread_mutex_unlock(&printf_mutex);*/
-
     pthread_mutex_lock(&result_mutex);
 	add_batch_result(args->doc_id,results_f,queries_head_w);
     pthread_cond_signal(&result_cond);
@@ -1383,401 +1373,12 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
     
     strcpy(args->doc_str,doc_str);
 	
-    job = create_job(worker,args);
+    job = create_job(MatchDocument_Thread,args);
   
     submit_job(jobScheduler,job);
 
+    return EC_SUCCESS;
 }
-
-
-
-// ErrorCode MatchDocumentForThread(DocID doc_id, const char* doc_str){
-//     last_doc_id = doc_id;
-//     const word* read_word;
-//     char* temp = (char*)doc_str; 
-//     read_word = strtok(temp, " ");
-
-//     int docWordLen;
-
-// 	query_ids* queries_head = NULL;
-// 	int results_found = 0;
-
-//     //free result lists from previous doc
-//     while(r_node != NULL){
-//         result_node* temps = r_node; 
-//         r_node = r_node->next;
-//         free(temps);
-//     }
-
-//     while(r_node_bk_edit != NULL){
-//         result_node_bk* temps = r_node_bk_edit; 
-//         r_node_bk_edit = r_node_bk_edit->next;
-//         free(temps);
-//     }
-
-//     while(r_node_bk_hamming != NULL){
-//         result_node_bk* temps = r_node_bk_hamming; 
-//         r_node_bk_hamming = r_node_bk_hamming->next;
-//         free(temps);
-//     }
-
-    
-//     r_node= NULL;
-//     r_node_bk_hamming = NULL;
-//     r_node_bk_edit = NULL;
-
-
-//     //for every word in document
-//     while(read_word != NULL){
-//         docWordLen = strlen(read_word);
-// 		//printf("%s\n",read_word);
-//         //document deduplication here
-//         //hash this word to see if it exists
-//         int hash = djb2(read_word) % WORD_HASH_TABLE_BUCKETS;
-//         if(words_hash_table->words_hash_buckets[hash] != NULL){
-//             //bucket exists, check here
-//             int found = -1;
-//             Words_Hash_Bucket* current = words_hash_table->words_hash_buckets[hash];
-//             Words_Hash_Bucket* previous = NULL;
-//             while(current != NULL){//printf("comparing %s with %s",current->this_word,read_word);
-//                 if(strcmp(current->this_word,read_word) == 0){
-//                     //word exists, skip
-//                     found = 1;//printf("Found word %s\n",read_word);
-//                     break;
-//                 }
-//                 previous = current;
-//                 current = current->next;
-//             }
-//             if(found == 1){
-//                 //word exists, skip
-//                 read_word = strtok(NULL, " ");
-//                 continue;                
-//             }else{
-//                 //add it to the hash buckets, search it in structs
-//                 previous->next = malloc(sizeof(Words_Hash_Bucket));
-//                 strcpy(previous->next->this_word,read_word);
-//                 previous->next->next = NULL;
-//             }
-//         }else{
-//             //create first bucket
-//             words_hash_table->words_hash_buckets[hash] = malloc(sizeof(Words_Hash_Bucket));
-//             strcpy(words_hash_table->words_hash_buckets[hash]->this_word,read_word);
-//             words_hash_table->words_hash_buckets[hash]->next = NULL ;
-//         }
-
-//         //look in edit distance
-//         for(int i=1;i<=3;i++){
-//             lookup_entry_index_edit(read_word,docWordLen,&ix,i);
-//         }
-//         //look in hamming distance
-//         if(hamming_root_table[docWordLen-1] != NULL){
-//             for(int i=1;i<=3;i++){
-//                 lookup_entry_index_hamming(read_word,docWordLen,&hamming_root_table[docWordLen-1],i);
-//             }
-//         }
-
-            
-//         //look in exact matching
-
-//         if(bloom_filter_exact[jenkins(read_word)%BLOOM_FILTER_SIZE] == 1 && bloom_filter_exact[djb2(read_word)%BLOOM_FILTER_SIZE] == 1){
-//             lookup_exact(read_word,hash_table_exact,docWordLen);
-//         }
-
-//         read_word = strtok(NULL, " ");
-//     }
-
-//    //printf("RESULTS FROM EXACT: \n\n");
-//     result_node* temp_node1 = r_node;
-//     while(temp_node1 != NULL){
-
-//         //printf("%s ->",temp_node1->this_entry->this_word);
-//         Payload* temp_payload = temp_node1->this_entry->payload;
-//         while(temp_payload != NULL){
-//             //before checking payload, check that this query hasnt been matched yet
-//             query_ids* temp_queries_head = queries_head;
-//             int matched = 0;
-//             while(temp_queries_head != NULL){
-//                 if(temp_queries_head->queryID == temp_payload->queryId){
-//                     matched = 1;
-//                 }
-//                 temp_queries_head = temp_queries_head->next;
-//             }
-//             if(matched == 0){
-//             //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
-//             Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%QUERY_HASH_BUCKETS];
-//             while(bucket != NULL){
-//                 if(bucket->query_id == temp_payload->queryId){      //query has been found
-//                     int to_find = bucket->query_words;              //we have to find this many words
-//                     for(int i=0; i<bucket->query_words; i++){
-//                         result_node* temp_list = r_node;
-//                         while(temp_list != NULL){
-//                             if(strcmp(bucket->words[i],temp_list->this_entry->this_word) == 0){
-//                                 to_find--;
-//                                 break;
-//                             }
-//                             temp_list = temp_list->next;
-//                         }
-//                     }
-//                     if(to_find == 0){
-//                         //printf("Query %d fully matched\n", temp_payload->queryId);
-//                         results_found++;
-//                         if(queries_head == NULL){       //first query, insert it at head
-//                             queries_head = malloc(sizeof(query_ids));
-//                             queries_head->next = NULL;
-//                             queries_head->queryID = temp_payload->queryId;
-//                         }else{                          //find correct position to sort
-//                             query_ids* temp = queries_head;
-//                             query_ids* previous = NULL;
-//                             int inserted = -1;
-//                             while(temp != NULL){
-//                                 if(temp_payload->queryId < temp->queryID){      //insert it here
-                                    
-//                                     if(temp == queries_head){
-//                                         query_ids* new_node = malloc(sizeof(query_ids));
-//                                         new_node->queryID = temp_payload->queryId;
-
-//                                         query_ids* previous_head = queries_head;
-//                                         queries_head = new_node;
-//                                         new_node->next = previous_head;
-//                                         inserted = 1;
-//                                         break;
-//                                     }else{
-
-//                                         query_ids* new_node = malloc(sizeof(query_ids));
-                                    
-//                                         new_node->queryID = temp_payload->queryId;
-                                        
-//                                         query_ids* previous_next = previous->next;
-                                        
-//                                         previous->next = new_node;
-//                                         new_node->next = previous_next;
-//                                         inserted = 1;
-//                                         break;                                        
-//                                     }
-//                                 }
-//                                 previous = temp;
-//                                 temp = temp->next;
-//                                 //continue
-//                             }
-//                             //iterate through and is bigger than everything
-//                             //add to the end
-//                             if(inserted == -1){
-//                                 temp = malloc(sizeof(query_ids));
-//                                 temp->next = NULL;
-//                                 temp->queryID = temp_payload->queryId;
-//                                 previous->next = temp;
-//                             }
-//                         }
-//                     }
-//                 }
-//                 bucket = bucket->next;
-//             }
-//             }
-//             temp_payload = temp_payload->next;
-//         }
-//         //printf("\n");
-//         temp_node1 = temp_node1->next;
-//     }
-    
-
-//     //printf("\n\n\n\n");
-//    //printf("RESULTS FROM Edit: \n\n");
-//     result_node_bk* temp_node2 = r_node_bk_edit;
-//     while(temp_node2 != NULL){
-
-//         Payload* temp_payload = temp_node2->this_entry->payload;
-//         // if(doc_id == 780){
-//         //     printf("%s thres: %d ->\n",temp_node2->this_entry->this_word,temp_node2->my_threshold);
-//         // }
-//         while(temp_payload != NULL){
-//         // if(doc_id == 780){
-//         //     printf("%d : %d\n",temp_payload->queryId,temp_payload->threshold );
-//         // }
-//             //before checking payload, check that this query hasnt been matched yet
-//             query_ids* temp_queries_head = queries_head;
-//             int matched = 0;
-//             while(temp_queries_head != NULL){
-//                 if(temp_queries_head->queryID == temp_payload->queryId){
-//                     matched = 1;
-//                 }
-//                 temp_queries_head = temp_queries_head->next;
-//             }
-//             if(matched == 0){
-
-//             //printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
-//             Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%QUERY_HASH_BUCKETS];
-//             while(bucket != NULL){
-//                 if(bucket->query_id == temp_payload->queryId){      //query has been found
-//                     int to_find = bucket->query_words;              //we have to find this many words
-//                     //printf(" %d ",to_find);
-//                     for(int i=0; i<bucket->query_words; i++){
-//                         result_node_bk* temp_list = r_node_bk_edit;
-//                         while(temp_list != NULL){
-//                             if(strcmp(bucket->words[i],temp_list->this_entry->this_word) == 0 && bucket->match_dist >= temp_list->my_threshold){
-//                                 to_find--;
-//                                 break;
-//                             }
-//                             temp_list = temp_list->next;
-//                         }
-//                     }
-//                     if(to_find == 0){
-//                         //printf("Query %d fully matched\n", temp_payload->queryId);
-//                         results_found++;
-//                         if(queries_head == NULL){       //first query, insert it at head
-//                             queries_head = malloc(sizeof(query_ids));
-//                             queries_head->next = NULL;
-//                             queries_head->queryID = temp_payload->queryId;
-//                         }else{                          //find correct position to sort
-//                             query_ids* temp = queries_head;
-//                             query_ids* previous = NULL;
-//                             int inserted = -1;
-//                             while(temp != NULL){
-//                                 if(temp_payload->queryId < temp->queryID){      //insert it here
-                                    
-//                                     if(temp == queries_head){
-//                                         query_ids* new_node = malloc(sizeof(query_ids));
-//                                         new_node->queryID = temp_payload->queryId;
-
-//                                         query_ids* previous_head = queries_head;
-//                                         queries_head = new_node;
-//                                         new_node->next = previous_head;
-//                                         inserted = 1;
-//                                         break;
-//                                     }else{
-//                                         query_ids* new_node = malloc(sizeof(query_ids));
-                                    
-//                                         new_node->queryID = temp_payload->queryId;
-                                        
-//                                         query_ids* previous_next = previous->next;
-                                        
-//                                         previous->next = new_node;
-//                                         new_node->next = previous_next;
-//                                         inserted = 1;
-//                                         break;                                        
-//                                     }
-//                                 }
-//                                 previous = temp;
-//                                 temp = temp->next;
-//                                 //continue
-//                             }
-//                             //iterate through and is bigger than everything
-//                             //add to the end
-//                             if(inserted == -1){
-//                                 temp = malloc(sizeof(query_ids));
-//                                 temp->next = NULL;
-//                                 temp->queryID = temp_payload->queryId;
-//                                 previous->next = temp;
-//                             }
-//                         }
-//                     }
-                    
-//                 }
-//                 bucket = bucket->next;
-//             }
-//             }
-//             temp_payload = temp_payload->next;
-//         }
-//         temp_node2 = temp_node2->next;
-//     }
-    
-//     //printf("RESULTS FROM hamming: \n\n");
-//     result_node_bk* temp_node3 = r_node_bk_hamming;
-//     while(temp_node3 != NULL){
-//         //printf("%s ->",temp_node3->this_entry->this_word);
-//         Payload* temp_payload = temp_node3->this_entry->payload;
-//         while(temp_payload != NULL){
-//             //before checking payload, check that this query hasnt been matched yet
-//             query_ids* temp_queries_head = queries_head;
-//             int matched = 0;
-//             while(temp_queries_head != NULL){
-//                 if(temp_queries_head->queryID == temp_payload->queryId){
-//                     matched = 1;
-//                 }
-//                 temp_queries_head = temp_queries_head->next;
-//             }
-//             if(matched == 0){//printf("q:%d t:%d\n\n",temp_payload->queryId,temp_payload->threshold);
-
-//             Query* bucket = Q_Hash_Table->query_hash_buckets[temp_payload->queryId%QUERY_HASH_BUCKETS];
-//             while(bucket != NULL){
-//                 if(bucket->query_id == temp_payload->queryId){      //query has been found
-//                     int to_find = bucket->query_words;              //we have to find this many words
-//                     for(int i=0; i<bucket->query_words; i++){
-//                         result_node_bk* temp_list = r_node_bk_hamming;
-//                         while(temp_list != NULL){
-//                             if(strcmp(bucket->words[i],temp_list->this_entry->this_word) == 0){
-//                                 to_find--;
-//                                 break;
-//                             }
-//                             temp_list = temp_list->next;
-//                         }
-//                     }
-//                     if(to_find == 0){
-//                         //printf("Query %d fully matched\n", temp_payload->queryId);
-//                         results_found++;
-//                         if(queries_head == NULL){       //first query, insert it at head
-//                             queries_head = malloc(sizeof(query_ids));
-//                             queries_head->next = NULL;
-//                             queries_head->queryID = temp_payload->queryId;
-//                         }else{                          //find correct position to sort
-//                             query_ids* temp = queries_head;
-//                             query_ids* previous = NULL;
-//                             int inserted = -1;
-//                             while(temp != NULL){
-//                                 if(temp_payload->queryId < temp->queryID){      //insert it here
-                                    
-//                                     if(temp == queries_head){
-//                                         query_ids* new_node = malloc(sizeof(query_ids));
-//                                         new_node->queryID = temp_payload->queryId;
-
-//                                         query_ids* previous_head = queries_head;
-//                                         queries_head = new_node;
-//                                         new_node->next = previous_head;
-//                                         inserted = 1;
-//                                         break;
-//                                     }else{
-//                                         query_ids* new_node = malloc(sizeof(query_ids));
-                                    
-//                                         new_node->queryID = temp_payload->queryId;
-                                        
-//                                         query_ids* previous_next = previous->next;
-                                        
-//                                         previous->next = new_node;
-//                                         new_node->next = previous_next;
-//                                         inserted = 1;
-//                                         break;                                        
-//                                     }
-//                                 }
-//                                 previous = temp;
-//                                 temp = temp->next;
-//                                 //continue
-//                             }
-//                             //iterate through and is bigger than everything
-//                             //add to the end
-//                             if(inserted == -1){
-//                                 temp = malloc(sizeof(query_ids));
-//                                 temp->next = NULL;
-//                                 temp->queryID = temp_payload->queryId;
-//                                 previous->next = temp;
-//                             }
-//                         }
-                    
-//                     }
-//                 }
-//                 bucket = bucket->next;
-//             }
-//             }
-//             temp_payload = temp_payload->next;
-//         }
-//         //printf("\n");
-//         temp_node3 = temp_node3->next;
-//     }
-
-// 	//add the results of a doc in results list
-// 	add_batch_result(doc_id,results_found,queries_head);
-
-//     reset_words_hash_table();
-// 	return EC_SUCCESS;
-// }
 
 ErrorCode StartQuery(QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
     //HERE, WAIT FOR ALL JOBS TO FINISH
@@ -1804,7 +1405,6 @@ void delete_from_exact(int query_id,char words[][32],int words_num){
     for(int i=0;i<words_num;i++){
         int found = -1;
         //search every word in the structs
-        int word_hash_value = hash(words[i])%EXACT_HASH_BUCKET;
         for(int i=0; i<=28; i++){
             if(hash_table_exact[i] != NULL){
                 for(int j=0; j< EXACT_HASH_BUCKET; j++){
@@ -1813,7 +1413,6 @@ void delete_from_exact(int query_id,char words[][32],int words_num){
                         while(temp != NULL){printf("Comparing %s with %s\n",words[i],temp->this_word);
                             if (strcmp(temp->this_word,words[i]) == 0){
                                 Payload* temp_payload = temp->payload;
-                                Payload* previous_payload = NULL;
                                 while(temp_payload != NULL){
                                     if(temp_payload->queryId == query_id){
                                        // printf("Payload exists here. Delete\n");
@@ -1828,7 +1427,6 @@ void delete_from_exact(int query_id,char words[][32],int words_num){
                                         found = 1;
                                         break;*/
                                     }
-                                    previous_payload = temp->payload;
                                     temp_payload = temp_payload->next;
                                 }
                             }
@@ -1854,18 +1452,8 @@ void delete_from_edit(int query_id,char words[][32],int words_num){
         // printf("%s ",words[i]);
 
         // hash_tables_edit->hash_buckets
-
-
-
-
-
-
     }printf("\n");
 
-
-
-
-    
 }
 
 void delete_from_hamming(int query_id,char words[][32],int words_num){
@@ -1874,41 +1462,17 @@ void delete_from_hamming(int query_id,char words[][32],int words_num){
         //printf("%s ",words[i]);
     }
     //printf("\n");
-
-
-
-
-
-    
 }
 
 
 
 ErrorCode EndQuery(QueryID query_id){
-    //HERE, WAIT FOR ALL JOBS TO FINISH
-    
-	// Remove this query from the active query set
-
-    //match type of query
-    // int query_type;
-    // char words[5][32];
-    // int words_num = 0;
-    // int deleted = 0;
 
     //free query from query list 
     Query* bucket = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
     
     //we are freeing the first bucket
     if(bucket != NULL && bucket->query_id == query_id){
-        
-        //copy info of query from query list
-        // words_num = bucket->query_words;
-        // query_type = bucket->match_type;
-
-        //copy every word
-        // for(int i=0;i<words_num;i++){
-        //     strcpy(words[i],bucket->words[i]);
-        // }
 
         Query* temp = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS];
         Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS] = Q_Hash_Table->query_hash_buckets[query_id%QUERY_HASH_BUCKETS]->next;
@@ -1918,14 +1482,6 @@ ErrorCode EndQuery(QueryID query_id){
     }
         Query* bucket_prev = bucket;
         while(bucket != NULL){
-
-            // //copy info of query from query list
-            // words_num = bucket->query_words;
-            // query_type = bucket->match_type;
-            // //copy every word
-            // for(int i=0;i<words_num;i++){
-            //     strcpy(words[i],bucket->words[i]);
-            // }
 
             if(bucket->query_id == query_id){
                 //query_type = bucket->match_type;
@@ -1950,9 +1506,7 @@ ErrorCode EndQuery(QueryID query_id){
 	return EC_SUCCESS;
 }
 
-
-
-//adds query to query hashtabel
+//adds query to query hashtable
 ErrorCode add_query(int bucket_num, QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
     if(Q_Hash_Table->query_hash_buckets[bucket_num] == NULL){
         //initialize bucket
