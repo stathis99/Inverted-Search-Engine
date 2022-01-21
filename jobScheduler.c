@@ -159,13 +159,24 @@ void* thread_Job_function(void* jobSch){
         JS->alive_thread_count++;
         pthread_mutex_unlock(&(JS->work_mutex));
 
-        if(work != NULL){
-            work->func(work->args);
-            //destroy job
-            Arguments* arguments = work->args;
-            free(arguments->doc_str);
-            free(arguments);
-            free(work);
+        if(work != NULL){           //if is_doc == 1
+            Arguments* arg = work->args;
+            if(arg->is_doc == 1){        //right now we can only support search
+                //wait for all 
+                work->func(work->args);
+                //destroy job
+                Arguments* arguments = work->args;
+                free(arguments->doc_str);
+                free(arguments);
+                free(work);
+            }else{//printf("bainw %ld\n",pthread_self());
+                work->func(work->args);
+                //destroy job
+                Arguments* arguments = work->args;
+                free(arguments->query_str);
+                free(arguments);
+                free(work);
+            }
         }
         
         pthread_mutex_lock(&(JS->work_mutex));

@@ -9,13 +9,24 @@
 
 typedef void (*thread_funct)(void *args);
 
-//arguments for jobs, used by function
+//arguments for jobs
 typedef struct args{
     int *activeThreads;
 
     DocID doc_id;
 
     char* doc_str;
+
+    //1 if document, 0 if query
+    int is_doc;
+
+    QueryID query_id;
+
+    MatchType match_type;
+
+    unsigned int match_dist;
+
+    char * query_str;
 }Arguments;
 
 //job struct
