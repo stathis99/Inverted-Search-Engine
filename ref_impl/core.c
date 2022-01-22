@@ -38,9 +38,6 @@ pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_mutex_t result_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t result_cond = PTHREAD_COND_INITIALIZER;
-
-pthread_mutex_t add_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 JobScheduler *jobScheduler;
 int results = 0;
 //----------------------------------------distance functions
@@ -959,8 +956,6 @@ void add_batch_result(int doc_id, int num_res, query_ids* results){
 }
 
 void MatchDocument_Thread(void *arg){
-    //we must wait for all query insertions either here on in the while(1)
-    //wait_all_tasks_finish(jobScheduler);
     Arguments *args = arg;
 
     result_node* r_node_w = NULL;
@@ -1364,6 +1359,7 @@ void MatchDocument_Thread(void *arg){
 
 ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
 
+    //printf("iteration %d\n",work++);
     Job *job;
     Arguments *args;
 
@@ -1373,7 +1369,6 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
 	args->activeThreads = &num;
 
     args->doc_id = doc_id;
-    args->is_doc = 1;
     args->doc_str = malloc(strlen(doc_str)+1);
     
     strcpy(args->doc_str,doc_str);
@@ -1385,20 +1380,10 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
     return EC_SUCCESS;
 }
 
-void StartQuery_Thread(void *arg){
-    //first step is to make startquery multithreaded
-    //then 1 thread does add query, the other deduplicatess
-
-    Arguments *args = arg;
+ErrorCode StartQuery(QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
     //HERE, WAIT FOR ALL JOBS TO FINISH
-    //wait_all_tasks_finish(jobScheduler);
+    wait_all_tasks_finish(jobScheduler);
 
-    QueryID query_id = args->query_id;
-    char* query_str = args->query_str;
-    MatchType match_type = args->match_type;
-    unsigned int match_dist = args->match_dist;
-printf("%d %d %d %s\n",query_id,match_dist,match_type,query_str);
-    pthread_mutex_lock(&add_mutex);
     //add the query to the query hash table
     add_query(query_id%QUERY_HASH_BUCKETS,query_id,query_str, match_type, match_dist);
 
@@ -1410,27 +1395,6 @@ printf("%d %d %d %s\n",query_id,match_dist,match_type,query_str);
     }else if(match_type == 2){
         deduplicate_edit_distance(query_str, query_id, match_dist, match_type, &ix);
     }
-    pthread_mutex_unlock(&add_mutex);
-}
-
-ErrorCode StartQuery(QueryID query_id, const char * query_str, MatchType match_type, unsigned int match_dist){
-    Job *job;
-    Arguments *args;
-
-	int num = NUM_THREADS;
-//printf("%d %d %d %s\n",query_id,match_dist,match_type,query_str);
-	args = malloc(sizeof(Arguments));
-	args->activeThreads = &num;
-    args->query_id = query_id;
-    args->is_doc = 0;
-    args->match_dist = match_dist;
-    args->match_type = match_type;
-    args->query_str = malloc(strlen(query_str)+1); 
-    strcpy(args->query_str,query_str);
-	
-    job = create_job(StartQuery_Thread,args);
-  
-    submit_job(jobScheduler,job);
 
     return EC_SUCCESS;
 
@@ -1606,10 +1570,10 @@ ErrorCode DestroyIndex(){
     wait_all_tasks_finish(jobScheduler);
 
     //broadcast all threads to end
-    pthread_mutex_lock(&(jobScheduler->work_mutex));
+    pthread_mutex_lock(&(jobScheduler->js_mutex));
     jobScheduler->last_doc = 1;
     jobScheduler->stop = 1;
-    pthread_mutex_unlock(&(jobScheduler->work_mutex));
+    pthread_mutex_unlock(&(jobScheduler->js_mutex));
 
     // for(int i=0; i<NUM_THREADS; i++){
     //     printf("Perimenw to thread %d\n",i);

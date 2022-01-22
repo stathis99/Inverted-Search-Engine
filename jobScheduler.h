@@ -7,8 +7,6 @@
 #include <stdbool.h>
 #include "include/core.h"
 
-typedef void (*thread_funct)(void *args);
-
 //arguments for jobs
 typedef struct args{
     int *activeThreads;
@@ -29,92 +27,91 @@ typedef struct args{
     char * query_str;
 }Arguments;
 
+typedef void (*thread_funct)(void *args);
 //job struct
 typedef struct job{
-    //pointer to the function to be executed
+    //function to be executed
     thread_funct func;
 
-    //pointer to a struct containing arguments
+    //function's arguments to be passed
     void *args;
 }Job;
 
 //queue node for jobs list
 typedef struct queueNode{
-    //pointer to job
     Job *job;
-
-    //pointer to next job node
     struct queueNode *next;
 }queueNode;
 
 //FIFO queue to store jobs
 typedef struct Queue{
-    //pointer to the head
-    queueNode *head;
-
-    //pointer to the tail
     queueNode *tail;
-
-    //number of elements inside
+    queueNode *head;
     int counter;
-
 }Queue;
 
 //job scheduler struct
 typedef struct JobScheduler{
-    //number of avaiable threads
-    int execution_threads;
-    
     //FIFO queue to hold the jobs
     Queue *q;
 
-    //array with the ids of the avaiable threads
-    pthread_t* tids;
+    //number of scheduler threads, set at initialization
+    int execution_threads;
 
-    //mutex for all locking
-    pthread_mutex_t work_mutex;
-
-    //signals that there is work to be processed
-    pthread_cond_t work_cond;
-
-    //signals that there are no threads processing
-    pthread_cond_t working_cond;
-
-    pthread_cond_t work_done;
-
-    int last_doc;
-
+    //number of alive threads
     size_t alive_thread_count;
 
     size_t thread_count;
 
-    //false by default, turns to 1 to stop threads' execution
-    bool stop;
+    //thread id's
+    pthread_t* tids;
+
+    //mutex for accessing c.s.
+    pthread_mutex_t js_mutex;
+
+    //wake threads, signal that there is work to do
+    pthread_cond_t workToDo_cond;
+
+    //signal that we have no more threads that can take jobs at the moment
+    pthread_cond_t working_cond;
+
+    //signal that we have processed a batch, used for wait_all_tasks_finish
+    pthread_cond_t work_done;
+
+    //used to break while(1) that threads are running on
+    int last_doc;
+
+    //0 by default, turns to 1 to stop threads' execution
+    int stop;
+
 }JobScheduler;
 
 
-//--------------JobScheduler related functions--------------//
+//JobScheduler related functions
+
+//function that initialises and returns job scheduler 
+JobScheduler* initialize_jobScheduler(int num_threads);
+
+//what every thread will do to take and process jobs
+void* thread_function(void* jobSch);
 
 //create and return the queue
 Queue* create_queue();
 
 //create and return a queue node
-queueNode* create_queue_node(Job *);
-
-//add a job to the end of the queue
-void submit_job(JobScheduler *, Job *);
+queueNode* create_queue_node(Job* job);
 
 //destroys queue node and the job
 void free_queue_node(queueNode* n);
 
-//pop first job inserted
-Job* pop_job(Queue *);
-
-//function that initialises and returns job scheduler 
-JobScheduler* initialize_jobScheduler(int);
-
 //initialize and return a job
-Job* create_job(thread_funct function, Arguments* arg_struct);
+Job* create_job(thread_funct funct, Arguments* arguments);
+
+//add a job to the end of the queue
+void submit_job(JobScheduler *, Job* job);
+
+//pop first job inserted
+Job* pop_job(Queue* q);
 
 //wait for all tasks to finish 
 int wait_all_tasks_finish(JobScheduler* sch);
