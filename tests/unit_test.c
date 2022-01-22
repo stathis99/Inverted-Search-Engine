@@ -71,13 +71,6 @@ void test_JobScheduler()
 
 
 TEST_LIST = {
-	{"Hamming Distance",hamming_distance_test},
-	{"Edit Distance",edit_distance_check},
-	{"Deduplicate Document: List Created",doc_dedupl_string},
-	{"Deduplicate Document: Number of Records",doc_dedupl_num},
-	{"Deduplicate Document: 'Born' Word Records",doc_dedupl_born},
-	{"Query Hash Table",query_handling},
-    {"Query Words in Structs",query_structs_handling},
     {"test_JobScheduler",test_JobScheduler},
-	{ NULL, NULL } // τερματίζουμε τη λίστα με NULL
+	{ NULL, NULL } // Ο„ΞµΟΞΌΞ±Ο„Ξ―Ξ¶ΞΏΟ…ΞΌΞµ Ο„Ξ· Ξ»Ξ―ΟƒΟ„Ξ± ΞΌΞµ NULL
 };
