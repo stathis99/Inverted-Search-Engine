@@ -35,8 +35,8 @@ CXX = g++
 CFLAGS=-O3 -fPIC -Wall -g -I. -I./include -pthread
 CXXFLAGS=$(CFLAGS)
 LDFLAGS=-lpthread 
-SOURCES1 = $(INCLUDE)/unit_test.c
-OBJECTS1 = $(INCLUDE)/unit_test.o jobScheduler.o
+SOURCES1 = $(INCLUDE)/unit_test.c $(INCLUDE)/jobScheduler_Test.c
+OBJECTS1 = $(INCLUDE)/unit_test.o $(INCLUDE)/jobScheduler_Test.o
 OUTTEST = test
 FLAGS   = -g -c -Wall -fPIC -lm -pthread
 
@@ -59,6 +59,10 @@ unit_test.o: unit_test.c
 
 jobScheduler.o: jobScheduler.c
 	$(CC) $(FLAGS) jobScheduler.c 
+
+jobScheduler_Test.o: jobScheduler_Test.c
+	$(CC) $(FLAGS) jobScheduler_Test.c 
+
 
 clean:
 	rm -f testdriver lib$(LIBRARY).so result.txt $(INCLUDE)/unit_test.o
