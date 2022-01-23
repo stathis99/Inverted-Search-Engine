@@ -9,7 +9,7 @@
 
 //arguments for jobs
 typedef struct args{
-    int *activeThreads;
+    int *activeJobs;
 
     DocID doc_id;
 

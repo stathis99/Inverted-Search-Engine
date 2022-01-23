@@ -6,7 +6,7 @@
 #include "../jobScheduler.h"
 #include <pthread.h>
 
-pthread_barrier_t   barrier;
+//pthread_barrier_t   barrier;
 
 //global structs we are using
 
@@ -888,7 +888,7 @@ ErrorCode InitializeIndex(){
 
     //Job Scheduler initialization
     jobScheduler = initialize_jobScheduler(NUM_THREADS);
-    pthread_barrier_init (&barrier, NULL, NUM_THREADS);
+    //pthread_barrier_init (&barrier, NULL, NUM_THREADS);
 
     for(int i = 0; i<BLOOM_FILTER_SIZE; i++){
         bloom_filter_exact[i] = 0;
@@ -1366,7 +1366,7 @@ ErrorCode MatchDocument(DocID doc_id, const char* doc_str){
 	int num = NUM_THREADS;
 
 	args = malloc(sizeof(Arguments));
-	args->activeThreads = &num;
+	args->activeJobs = &num;
 
     args->doc_id = doc_id;
     args->doc_str = malloc(strlen(doc_str)+1);

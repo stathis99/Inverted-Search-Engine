@@ -12,46 +12,44 @@ pthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;
 
 void worker(void *arg)
 {
+    pthread_mutex_lock(&mu);
 	
-    Arguments *args = arg;
-	*(args->activeThreads) -= 1;
+     Arguments *args = arg;
+     *(args->activeJobs)  -= 1;
+     printf("\nworker %lu gets job %d from queue \n",pthread_self(),*(args->activeJobs));	
 	
-
-	//signal
-	pthread_mutex_lock(&mu);
-  	pthread_cond_signal(&cond);
-  	pthread_mutex_unlock(&mu);
-	
-	
+     pthread_mutex_unlock(&mu);	
 
 }
 
 void test_JobScheduler()
 {
+        JobScheduler *jb;
+   	Job *job;
+    	Arguments *args;
 
-    JobScheduler *jb;
-    Job *job;
-    Arguments *args;
-
-	int num = 10;
-
-	args = malloc(sizeof(Arguments));
-	args->activeThreads = &num;
+       jb = initialize_jobScheduler(2);
 
 
-    jb = initialize_jobScheduler(1);
+//create 3 jobs and add them to job scheduler
+    for(int i=0; i<3;i++){
 
-    for (int i = 0; i<1; i++) {
+
+    	args = malloc(sizeof(Arguments));
+	args->activeJobs = &i;
+
         
-        job = create_job(worker,args);
+      job = create_job(worker,args);
   
-        submit_job(jb,job);
+      submit_job(jb,job);
+
     }
     
-	//wait worker to run
-	pthread_mutex_lock(&mu);
-	pthread_cond_wait(&cond,&mu);
-	pthread_mutex_unlock(&mu);
+	wait_all_tasks_finish(jb);
+
+	
+        int mytest = *(args->activeJobs);
+
 
 	jb->stop = 1;
 	jb->alive_thread_count = 0;
@@ -64,8 +62,8 @@ void test_JobScheduler()
 	free(jb);
 
 	
-
-	TEST_ASSERT(num == 9);
+	//jobs must be 0
+	TEST_ASSERT(mytest == 0);
 
 }
 
